@@ -1,10 +1,8 @@
-package com.paybridge.common.model;
+package com.paybridge.payment.domain.dto;
 
 import java.math.BigDecimal;
 
-public record ChargeCommand(
-		String merchantId,
-		String reference,
+public record PaystackChargeRequest(
 		BigDecimal amount,
 		String currency,
 		String customerEmail,
