@@ -10,7 +10,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>payment-common</artifactId>
+    <artifactId>common</artifactId>
     <packaging>jar</packaging>
 
     <name>Payment Common Library</name>

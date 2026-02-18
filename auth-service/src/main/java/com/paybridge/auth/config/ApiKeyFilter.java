@@ -1,4 +1,4 @@
 package com.paybridge.auth.config;
 
-public class SecurityConfig {
+public class ApiKeyFilter {
 }

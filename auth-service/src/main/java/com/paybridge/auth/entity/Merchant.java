@@ -1,3 +1,4 @@
 package com.paybridge.auth.entity;
 
-public class ApiKey {}
+public class Merchant{
+}

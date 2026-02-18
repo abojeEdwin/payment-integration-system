@@ -44,10 +44,8 @@
     <modules>
         <module>common</module>
         <module>auth-service</module>
-        <module>gateway-service</module>
-        <module>payment-core</module>
-        <module>webhook-ingress</module>
-        <module>webhook-processor</module>
+        <module>payment-service</module>
+        <module>webhook-service</module>
     </modules>
 
     <!-- Properties (Centralized Versions) -->

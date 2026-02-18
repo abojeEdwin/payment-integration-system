@@ -1,4 +1,4 @@
 package com.paybridge.auth.repository;
 
-public interface ApiKeyRepository {
+public interface MerchantRepository {
 }
