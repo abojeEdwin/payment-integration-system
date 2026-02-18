@@ -20,9 +20,8 @@ class IdempotencyKeyGeneratorTest {
 	@Test
 	void isValid_shouldReturnTrueForValidKey() {
 		// Given
-		String validKey = "idemp_20240115123456_abc123XYZ789ab";
+		String validKey = "idemp_20240115123456_abc123XYZ789abqw";
 
-		// When/Then
 		assertTrue(IdempotencyKeyGenerator.isValid(validKey));
 	}
 
