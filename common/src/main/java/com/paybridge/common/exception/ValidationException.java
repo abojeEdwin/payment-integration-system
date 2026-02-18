@@ -1,17 +1,17 @@
 package com.paybridge.common.exception;
 
+import com.paybridge.common.model.ErrorCategory;
+import lombok.Getter;
+
 import java.util.Map;
 
+@Getter
 public class ValidationException extends CommonException {
 
 	private final Map<String, String> errors;
 
 	public ValidationException(Map<String, String> errors) {
-		super("Validation failed", org.springframework.http.HttpStatus.BAD_REQUEST, "VALIDATION_001");
+		super("Validation failed", "VALIDATION_001", ErrorCategory.CLIENT_ERROR);
 		this.errors = errors;
-	}
-
-	public Map<String, String> getErrors() {
-		return errors;
 	}
 }

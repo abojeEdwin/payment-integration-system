@@ -1,13 +1,15 @@
 package com.paybridge.common.exception;
 
+import com.paybridge.common.model.ErrorCategory;
+
 public class InvalidApiKeyException extends CommonException {
 	public InvalidApiKeyException(String message) {
-		super(message, org.springframework.http.HttpStatus.UNAUTHORIZED, "AUTH_001");
+		super(message, "AUTH_001", ErrorCategory.CLIENT_ERROR);
 	}
 
 	public InvalidApiKeyException(String apiKey, String reason) {
 		super("Invalid API key [" + maskKey(apiKey) + "]: " + reason,
-				org.springframework.http.HttpStatus.UNAUTHORIZED, "AUTH_001");
+				"AUTH_001", ErrorCategory.CLIENT_ERROR);
 	}
 
 	// Mask key for logging (e.g., "pk_test_ab...yz")

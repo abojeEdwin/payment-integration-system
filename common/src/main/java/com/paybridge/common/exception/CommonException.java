@@ -1,26 +1,23 @@
 package com.paybridge.common.exception;
 
+import com.paybridge.common.model.ErrorCategory;
+import lombok.Getter;
+
+@Getter
 public class CommonException extends RuntimeException {
-	private final org.springframework.http.HttpStatus status;
-	private final String errorCode;
+	private final String errorCode; // e.g., "AUTH_001", "PAY_002"
+	private final ErrorCategory category; // NEW: Business-friendly category
 
-	public CommonException(String message, org.springframework.http.HttpStatus status, String errorCode) {
+	public CommonException(String message, String errorCode, ErrorCategory category) {
 		super(message);
-		this.status = status;
 		this.errorCode = errorCode;
+		this.category = category;
 	}
 
-	public CommonException(String message, Throwable cause, org.springframework.http.HttpStatus status, String errorCode) {
+	public CommonException(String message, Throwable cause, String errorCode, ErrorCategory category) {
 		super(message, cause);
-		this.status = status;
 		this.errorCode = errorCode;
+		this.category = category;
 	}
 
-	public org.springframework.http.HttpStatus getStatus() {
-		return status;
-	}
-
-	public String getErrorCode() {
-		return errorCode;
-	}
 }
