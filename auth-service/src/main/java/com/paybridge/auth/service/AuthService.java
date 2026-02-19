@@ -28,7 +28,7 @@ public class AuthService {
      * Register new merchant
      */
     @Transactional
-    public MerchantDto registerMerchant(
+    public MerchantDto  registerMerchant(
             String name, String email, String password, ProviderType provider) {
         // Validate email uniqueness
         if (merchantRepository.existsByEmail(email)) {

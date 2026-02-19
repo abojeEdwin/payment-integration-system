@@ -3,11 +3,15 @@ package com.paybridge.auth.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,8 +23,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-	private final JwtTokenProvider jwtTokenProvider;
-	private final ApiKeyFilter apiKeyFilter;
+	private final JwtTokenProvider   jwtTokenProvider;
+	private final ApiKeyFilter       apiKeyFilter;
+	private final UserDetailsService userDetailsService;
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -28,14 +33,13 @@ public class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session ->
 						session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.authorizeHttpRequests(authz -> authz
+				.authorizeHttpRequests(auths -> auths
 						// Public endpoints
-						.requestMatchers("/auth/login").permitAll()
+						.requestMatchers("/auth/login", "/auth/register").permitAll()
 						.requestMatchers("/actuator/**").permitAll()
 
 						// Merchant admin endpoints (require JWT)
-						.requestMatchers("/auth/merchants/**").authenticated()
-						.requestMatchers("/api-keys/**").authenticated()
+						.requestMatchers("/auth/**", "/api-keys/**").authenticated()
 
 						// Everything else denied
 						.anyRequest().denyAll()
@@ -49,8 +53,24 @@ public class SecurityConfig {
 		return http.build();
 	}
 
+	// ✅ Password encoder bean (required for BCrypt)
 	@Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	// ✅ CRITICAL FIX: Expose AuthenticationManager bean
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+		return authConfig.getAuthenticationManager();
+	}
+
+	// ✅ DaoAuthenticationProvider (links UserDetailsService + PasswordEncoder)
+	@Bean
+	public DaoAuthenticationProvider authenticationProvider() {
+		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+		authProvider.setUserDetailsService(userDetailsService);
+		authProvider.setPasswordEncoder(passwordEncoder());
+		return authProvider;
+	}
 }
