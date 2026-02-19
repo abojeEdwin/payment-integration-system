@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * RFC 7807 Problem Details for HTTP APIs.
@@ -46,7 +47,7 @@ public final class ErrorDetail {
 				.title(title)
 				.status(status)
 				.detail(detail)
-				.instance(java.util.UUID.randomUUID().toString())
+				.instance(UUID.randomUUID().toString())
 				.timestamp(Instant.now())
 				.build();
 	}
@@ -60,7 +61,7 @@ public final class ErrorDetail {
 				.title("Validation Failed")
 				.status(400)
 				.detail("Request validation failed. Check 'errors' field for details.")
-				.instance(java.util.UUID.randomUUID().toString())
+				.instance(UUID.randomUUID().toString())
 				.timestamp(Instant.now())
 				.errors(fieldErrors)
 				.build();

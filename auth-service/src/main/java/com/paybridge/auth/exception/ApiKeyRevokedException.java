@@ -1,4 +1,7 @@
 package com.paybridge.auth.exception;
 
-public class ApiKeyRevokedException {
+public class ApiKeyRevokedException extends RuntimeException {
+	public ApiKeyRevokedException(String message) {
+		super(message);
+	}
 }

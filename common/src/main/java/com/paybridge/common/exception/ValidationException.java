@@ -6,7 +6,7 @@ import lombok.Getter;
 import java.util.Map;
 
 @Getter
-public class ValidationException extends CommonException {
+public class ValidationException extends PaymentException {
 
 	private final Map<String, String> errors;
 

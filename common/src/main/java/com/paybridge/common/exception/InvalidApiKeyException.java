@@ -2,7 +2,7 @@ package com.paybridge.common.exception;
 
 import com.paybridge.common.model.ErrorCategory;
 
-public class InvalidApiKeyException extends CommonException {
+public class InvalidApiKeyException extends PaymentException {
 	public InvalidApiKeyException(String message) {
 		super(message, "AUTH_001", ErrorCategory.CLIENT_ERROR);
 	}

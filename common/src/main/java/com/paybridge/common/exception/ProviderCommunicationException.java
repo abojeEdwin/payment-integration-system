@@ -4,7 +4,7 @@ import com.paybridge.common.model.ErrorCategory;
 import lombok.Getter;
 
 @Getter
-public class ProviderCommunicationException extends CommonException {
+public class ProviderCommunicationException extends PaymentException {
 	private final String providerName;
 
     public ProviderCommunicationException(String providerName, String message, Throwable cause) {

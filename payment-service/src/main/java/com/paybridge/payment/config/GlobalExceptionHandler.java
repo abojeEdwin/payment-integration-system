@@ -1,7 +1,7 @@
 package com.paybridge.payment.config;
 
 import com.paybridge.common.dto.ErrorDetail;
-import com.paybridge.common.exception.CommonException;
+import com.paybridge.common.exception.PaymentException;
 import com.paybridge.common.model.ErrorCategory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-	@ExceptionHandler(CommonException.class)
-	public ResponseEntity<ErrorDetail> handlePayment(CommonException ex) {
+	@ExceptionHandler(PaymentException.class)
+	public ResponseEntity<ErrorDetail> handlePayment(PaymentException ex) {
 		int httpStatus = mapToHttpStatus(ex.getCategory());
 		return ResponseEntity.status(httpStatus)
 				.body(ErrorDetail.of(

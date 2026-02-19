@@ -4,7 +4,7 @@ import com.paybridge.common.model.ErrorCategory;
 import lombok.Getter;
 
 @Getter
-public class InsufficientFundsException extends CommonException {
+public class InsufficientFundsException extends PaymentException {
 	private final double requestedAmount;
 	private final double availableBalance;
 
