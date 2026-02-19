@@ -42,6 +42,7 @@ public class Merchant {
 	private ProviderType paymentProvider;
 
 	@Column(nullable = false)
+	@Builder.Default
 	private boolean active = true;
 
 	@CreatedDate

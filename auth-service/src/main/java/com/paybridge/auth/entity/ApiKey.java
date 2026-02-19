@@ -36,6 +36,7 @@ public class ApiKey {
 	private String description;
 
 	@Column(nullable = false)
+	@Builder.Default
 	private boolean active = true;
 
 	@Column(name = "expires_at")

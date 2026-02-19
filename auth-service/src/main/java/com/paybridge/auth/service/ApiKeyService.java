@@ -65,7 +65,7 @@ public class ApiKeyService {
 
         // Return full key ONLY once (never stored in DB in retrievable form)
         return ApiKeyResponse.builder()
-                .apiKey(fullKey)
+                .keyValue(fullKey)
                 .keyPrefix(apiKey.getKeyPrefix())
                 .description(description)
                 .createdAt(apiKey.getCreatedAt())

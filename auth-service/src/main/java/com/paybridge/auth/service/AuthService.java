@@ -29,11 +29,11 @@ public class AuthService {
      */
     @Transactional
     public MerchantDto registerMerchant(
-			String name, String email, String password, ProviderType provider) {
+            String name, String email, String password, ProviderType provider) {
         // Validate email uniqueness
         if (merchantRepository.existsByEmail(email)) {
             throw new PaymentException("Email already registered", "AUTH_002",
-                ErrorCategory.CLIENT_ERROR);
+                    ErrorCategory.CLIENT_ERROR);
         }
 
         // Hash password
@@ -60,19 +60,19 @@ public class AuthService {
     public Merchant authenticate(String email, String password) {
         Merchant merchant = merchantRepository.findActiveByEmail(email)
                 .orElseThrow(() -> new PaymentException(
-                    "Invalid credentials", "AUTH_003",
-                    ErrorCategory.CLIENT_ERROR));
+                        "Invalid credentials", "AUTH_003",
+                        ErrorCategory.CLIENT_ERROR));
 
         if (!passwordEncoder.matches(password, merchant.getPasswordHash())) {
             throw new PaymentException(
-                "Invalid credentials", "AUTH_003",
-                ErrorCategory.CLIENT_ERROR);
+                    "Invalid credentials", "AUTH_003",
+                    ErrorCategory.CLIENT_ERROR);
         }
 
         if (!merchant.canAuthenticate()) {
             throw new PaymentException(
-                "Account is inactive", "AUTH_004",
-                ErrorCategory.CLIENT_ERROR);
+                    "Account is inactive", "AUTH_004",
+                    ErrorCategory.CLIENT_ERROR);
         }
 
         return merchant;
@@ -84,8 +84,8 @@ public class AuthService {
     public MerchantDto getMerchant(UUID merchantId) {
         Merchant merchant = merchantRepository.findById(merchantId)
                 .orElseThrow(() -> new PaymentException(
-                    "Merchant not found", "AUTH_005",
-                    ErrorCategory.CLIENT_ERROR));
+                        "Merchant not found", "AUTH_005",
+                        ErrorCategory.CLIENT_ERROR));
         return merchantMapper.toDto(merchant);
     }
 
@@ -94,11 +94,11 @@ public class AuthService {
      */
     @Transactional
     public MerchantDto updateMerchant(
-			UUID merchantId, String name, ProviderType provider) {
+            UUID merchantId, String name, ProviderType provider) {
         Merchant merchant = merchantRepository.findById(merchantId)
                 .orElseThrow(() -> new PaymentException(
-                    "Merchant not found", "AUTH_005",
-                    ErrorCategory.CLIENT_ERROR));
+                        "Merchant not found", "AUTH_005",
+                        ErrorCategory.CLIENT_ERROR));
 
         merchant.updateDetails(name, provider);
         merchant = merchantRepository.save(merchant);
@@ -114,8 +114,8 @@ public class AuthService {
     public void deactivateMerchant(UUID merchantId) {
         Merchant merchant = merchantRepository.findById(merchantId)
                 .orElseThrow(() -> new PaymentException(
-                    "Merchant not found", "AUTH_005",
-                    ErrorCategory.CLIENT_ERROR));
+                        "Merchant not found", "AUTH_005",
+                        ErrorCategory.CLIENT_ERROR));
 
         merchant.setActive(false);
         merchantRepository.save(merchant);

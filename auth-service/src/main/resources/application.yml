@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: auth-service
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/auth_db
+    username: auth_user
+    password: ${DB_PASSWORD:change_me}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 8081
+
+jwt:
+  secret: ${JWT_SECRET:your-super-secret-jwt-key-change-in-production}
+  expiration: 86400000 # 24 hours in milliseconds
+
+api:
+  key:
+    header: X-API-Key
+
+logging:
+  level:
+    com.pay.auth: DEBUG
+    org.springframework.security: DEBUG
