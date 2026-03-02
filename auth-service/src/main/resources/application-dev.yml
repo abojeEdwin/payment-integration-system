@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:authdb;DB_CLOSE_DELAY=-1;MODE=POSTGRESQL
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -12,3 +12,17 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8081  # ✅ AUTH-SERVICE PORT
+
+jwt:
+  secret: phase1-dev-secret-change-in-prod
+  expiration: 86400000 # 24 hours
+
+logging:
+  level:
+    com.pay.auth: DEBUG

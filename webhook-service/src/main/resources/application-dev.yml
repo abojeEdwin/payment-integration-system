@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:webhookdb;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:webhookdb;DB_CLOSE_DELAY=-1;MODE=POSTGRESQL
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -12,5 +12,24 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: webhook-processor-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
 
-spring.kafka.bootstrap-servers: localhost:9092
+server:
+  port: 8083  # ✅ WEBHOOK-SERVICE PORT
+
+payment:
+  service:
+    url: http://localhost:8082  # ✅ Points to payment-service
+
+logging:
+  level:
+    com.pay.webhook: DEBUG
+    org.springframework.kafka: INFO
