@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: payment-service
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/payment_db
+    username: payment_user
+    password: ${DB_PASSWORD:change_me}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+server:
+  port: 8082
+
+paystack:
+  secret-key: ${PAYSTACK_SECRET_KEY:sk_test_xxx}
+  api-url: https://api.paystack.co
+
+logging:
+  level:
+    com.pay.payment: DEBUG
+    org.springframework.kafka: INFO
