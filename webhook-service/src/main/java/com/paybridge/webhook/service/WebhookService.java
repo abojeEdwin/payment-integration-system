@@ -98,7 +98,6 @@ public class WebhookService {
 			log.error("Error processing webhook {}", webhookEvent.getId(), e);
 			webhookEvent.markAsFailed(e.getMessage());
 			webhookEventRepository.save(webhookEvent);
-			throw e;
 		}
 	}
 }
