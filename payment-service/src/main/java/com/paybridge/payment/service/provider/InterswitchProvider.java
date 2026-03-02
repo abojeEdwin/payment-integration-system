@@ -14,10 +14,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class InterswitchProvider implements PaymentProvider {
 	private final WebClient webClient;
 
-	@Value("${interswitch.secret-key:}")
+	@Value("${providers.interswitch.secret-key:}")
 	private String secretKey;
 
-	@Value("${interswitch.api-url:https://api.interswitch.co}")
+	@Value("${providers.interswitch.api-url:https://api.interswitch.co}")
 	private String apiUrl;
 
 	public InterswitchProvider(WebClient.Builder webClientBuilder) {

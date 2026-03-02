@@ -1,26 +1,28 @@
 package com.paybridge.webhook.service.provider;
 
 import com.paybridge.common.model.WebhookEventType;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.HmacUtils;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 @Slf4j
+@RequiredArgsConstructor
 public class PaystackSignatureValidator implements SignatureValidator {
 
+	@Value("${providers.paystack.webhook-secret:}")
 	private final String secretKey;
-
-	public PaystackSignatureValidator(String secretKey) {
-		this.secretKey = secretKey;
-	}
 
 	@Override
 	public boolean isValid(String rawPayload, String signatureHeader) {
 		if (secretKey == null || secretKey.isEmpty()) {
 			log.warn("Paystack webhook secret not configured - skipping validation");
-			return true; // Allow in dev mode
+			return false; // Allow in dev mode
 		}
 
 		if (signatureHeader == null) return false;
@@ -53,12 +55,11 @@ public class PaystackSignatureValidator implements SignatureValidator {
 	}
 
 	@Override
-	public String extractEventId(String rawPayload) {
+	public String extractEventId(String rawPayload) throws NoSuchAlgorithmException {
 		// In production: Parse JSON and extract event ID
 		// For simplicity: Use hash of payload + timestamp
-		return "paystack_" + MessageDigest.getInstance("SHA-256")
-				.digest((rawPayload + System.currentTimeMillis()).getBytes())
-				.toString();
+		return "paystack_" + Arrays.toString(MessageDigest.getInstance("SHA-256")
+				.digest((rawPayload + System.currentTimeMillis()).getBytes()));
 	}
 
 	@Override

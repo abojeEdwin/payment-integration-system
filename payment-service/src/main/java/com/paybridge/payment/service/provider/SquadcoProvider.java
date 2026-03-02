@@ -15,9 +15,9 @@ public class SquadcoProvider implements PaymentProvider {
 
 	private final WebClient webClient;
 
-	@Value("${squadco.secret-key:}")
+	@Value("${providers.squadco.secret-key:}")
 	private String secretKey;
-	@Value("${squadco.api-url:https://api.squadco.co}")
+	@Value("${providers.squadco.api-url:https://api.squadco.co}")
 	private String apiUrl;
 
 	public SquadcoProvider(WebClient.Builder webClientBuilder) {

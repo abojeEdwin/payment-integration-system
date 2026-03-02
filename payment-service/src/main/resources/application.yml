@@ -24,9 +24,16 @@ spring:
 server:
   port: 8082
 
-paystack:
-  secret-key: ${PAYSTACK_SECRET_KEY:sk_test_xxx}
-  api-url: https://api.paystack.co
+providers:
+  paystack:
+    secret-key: ${PAYSTACK_SECRET_KEY:sk_test_xxx}
+    api-url: https://api.paystack.co
+  interswitch:
+    secret-key: ${INTERSWITCH_SECRET_KEY:sk_test_xxx}
+    api-url: https://api.interswitch.co
+  squadco:
+    secret-key: ${SQUADCO_SECRET_KEY:sk_test_xxx}
+    api-url: https://api.squadco.co
 
 logging:
   level:

@@ -15,9 +15,9 @@ public class PaystackProvider implements PaymentProvider {
 
 	private final WebClient webClient;
 
-	@Value("${paystack.secret-key:}")
+	@Value("${providers.paystack.secret-key:}")
 	private String secretKey;
-	@Value("${paystack.api-url:https://api.paystack.co}")
+	@Value("${providers.paystack.api-url:https://api.paystack.co}")
 	private String apiUrl;
 
 	public PaystackProvider(WebClient.Builder webClientBuilder) {
