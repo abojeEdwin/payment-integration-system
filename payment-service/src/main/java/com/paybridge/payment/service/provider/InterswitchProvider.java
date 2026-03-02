@@ -1,4 +1,45 @@
 package com.paybridge.payment.service.provider;
 
-public class InterswitchProvider {
+import com.paybridge.common.model.PaymentStatus;
+import com.paybridge.common.model.ProviderType;
+import com.paybridge.payment.dto.CreatePaymentRequest;
+import com.paybridge.payment.dto.PaymentResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+
+@Slf4j
+@Component
+public class InterswitchProvider implements PaymentProvider {
+	private final WebClient webClient;
+
+	@Value("${interswitch.secret-key:}")
+	private String secretKey;
+
+	@Value("${interswitch.api-url:https://api.interswitch.co}")
+	private String apiUrl;
+
+	public InterswitchProvider(WebClient.Builder webClientBuilder) {
+		this.webClient = webClientBuilder.baseUrl(apiUrl).build();
+	}
+
+	@Override
+	public PaymentResponse charge(CreatePaymentRequest request) {
+		log.info("InterswitchProvider processing payment for {}", request.getCustomerEmail());
+
+		return PaymentResponse.builder()
+				.success(true)
+				.transactionId("interswitch_txn_" + System.currentTimeMillis())
+				.reference("ISW_REF_" + System.currentTimeMillis())
+				.status(PaymentStatus.SUCCESS)
+				.message("Payment initiated successfully")
+				.authorizationUrl("https://interswitch.com/pay/" + System.currentTimeMillis())
+				.build();
+	}
+
+	@Override
+	public ProviderType getProviderType() {
+		return ProviderType.INTERSWITCH;
+	}
 }

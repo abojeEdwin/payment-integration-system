@@ -97,7 +97,10 @@ public class PaymentTransaction {
 	}
 
 	private String extractFailureReason(String response) {
-		// Simplified - in real system parse provider-specific response
+		if (response == null || response.isEmpty()) return "Unknown failure";
+		if (response.toLowerCase().contains("insufficient funds")) return "Insufficient funds";
+		if (response.toLowerCase().contains("declined")) return "Card declined";
+		if (response.toLowerCase().contains("expired")) return "Card expired";
 		return "Payment failed at provider";
 	}
 }

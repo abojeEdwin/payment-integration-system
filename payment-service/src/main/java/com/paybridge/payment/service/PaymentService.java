@@ -18,12 +18,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
+	private static final String TOPIC_PAYMENT_EVENTS = "payment-events";
 
 	private final PaymentTransactionRepository        transactionRepository;
 	private final ProviderFactory                     providerFactory;
@@ -61,7 +63,7 @@ public class PaymentService {
 		try {
 			providerResponse = provider.charge(request);
 		} catch (Exception e) {
-			log.error("Provider charge failed", e);
+			log.error("Provider charge failed for transaction {}: {}", transaction.getId(), e.getMessage(), e);
 			transaction.updateStatus(PaymentStatus.FAILED, e.getMessage());
 			transactionRepository.save(transaction);
 			publishPaymentEvent(transaction, "PAYMENT_FAILED");
@@ -73,19 +75,55 @@ public class PaymentService {
 		}
 
 		// Step 6: Update transaction with provider response
-		transaction.updateStatus(
-				providerResponse.isSuccess() ? PaymentStatus.SUCCESS : PaymentStatus.FAILED,
-				providerResponse.toString()
-		);
+		PaymentStatus newStatus = providerResponse.isSuccess() ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
+		transaction.updateStatus(newStatus, providerResponse.toString());
 		transaction.setExternalReference(providerResponse.getReference());
 		transaction = transactionRepository.save(transaction);
 		log.info("Transaction updated: {} -> {}", transaction.getId(), transaction.getStatus());
 
 		// Step 7: Publish final event
 		publishPaymentEvent(transaction,
-				providerResponse.isSuccess() ? "PAYMENT_SUCCESS" : "PAYMENT_FAILED");
+				newStatus == PaymentStatus.SUCCESS ? "PAYMENT_SUCCESS" : "PAYMENT_FAILED");
 
 		return mapToResponse(transaction);
+	}
+
+	@Transactional
+	public void updatePaymentStatus(String externalReference,
+									PaymentStatus newStatus,
+									String providerResponse) {
+		log.info("Updating transaction {} to status {}", externalReference, newStatus);
+
+		PaymentTransaction transaction = transactionRepository.findByExternalReference(externalReference)
+				.orElseThrow(() -> new PaymentException(
+						"Transaction not found with reference: " + externalReference,
+						"PAY_007",
+						ErrorCategory.CLIENT_ERROR
+				));
+
+		transaction.updateStatus(newStatus, providerResponse);
+		transactionRepository.save(transaction);
+
+		log.info("✅ Transaction {} updated to {}", externalReference, newStatus);
+		publishPaymentEvent(transaction, "PAYMENT_STATUS_UPDATED");
+	}
+
+	@Transactional(readOnly = true)
+	public PaymentResponse getPaymentStatus(UUID transactionId, String apiKey) {
+		PaymentTransaction transaction = transactionRepository.findById(transactionId)
+				.orElseThrow(() -> new PaymentException(
+						"Transaction not found", "PAY_007",
+						ErrorCategory.CLIENT_ERROR
+				));
+
+		if (!transaction.getApiKey().equals(apiKey)) {
+			throw new PaymentException(
+					"Unauthorized access", "AUTH_009",
+					ErrorCategory.CLIENT_ERROR
+			);
+		}
+
+		return mapToResponse(transaction); // Auto-mapped!
 	}
 
 	private void validateRequest(CreatePaymentRequest request) {
@@ -104,27 +142,6 @@ public class PaymentService {
 					ErrorCategory.CLIENT_ERROR
 			);
 		}
-	}
-
-	/**
-     * Get payment status with merchant ownership validation
-     */
-    @Transactional(readOnly = true)
-	public PaymentResponse getPaymentStatus(UUID transactionId, String apiKey) {
-		PaymentTransaction transaction = transactionRepository.findById(transactionId)
-				.orElseThrow(() -> new PaymentException(
-						"Transaction not found", "PAY_007",
-						ErrorCategory.CLIENT_ERROR
-				));
-
-		if (!transaction.getApiKey().equals(apiKey)) {
-			throw new PaymentException(
-					"Unauthorized access", "AUTH_009",
-					ErrorCategory.CLIENT_ERROR
-			);
-		}
-
-		return mapToResponse(transaction); // Auto-mapped!
 	}
 
 	private PaymentTransaction createPendingTransaction(
@@ -185,14 +202,20 @@ public class PaymentService {
 					.currency(transaction.getCurrency().toString())
 					.status(transaction.getStatus().toString())
 					.provider(transaction.getProvider().toString())
-					.timestamp(java.time.Instant.now())
+					.timestamp(Instant.now())
 					.build();
 
 			kafkaTemplate.send("payment-events", event.getEventId(), event);
 			log.debug("Published event: {} for transaction {}", eventType, transaction.getId());
 		} catch (Exception e) {
-			log.warn("Failed to publish Kafka event (non-fatal)", e);
+			log.warn("Failed to publish Kafka event {} for transaction {} (non-fatal)",
+					eventType, transaction.getId(), e);
 			// Don't fail payment if event publishing fails - it's async anyway
 		}
+	}
+
+	private String maskApiKey(String apiKey) {
+		if (apiKey == null || apiKey.length() < 8) return "***";
+		return apiKey.substring(0, 4) + "****" + apiKey.substring(Math.max(0, apiKey.length() - 4));
 	}
 }

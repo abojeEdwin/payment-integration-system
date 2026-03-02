@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.UUID;
 
 @RestController
@@ -22,28 +21,10 @@ public class PaymentController {
 
 	private final PaymentService paymentService;
 
-	/**
-	 * Create new payment
-	 * POST /payments
-	 * <p>
-	 * Headers:
-	 * X-API-Key: {merchant_api_key}
-	 * <p>
-	 * Request Body:
-	 * {
-	 * "amount": 1500.00,
-	 * "currency": "NGN",
-	 * "customerEmail": "customer@example.com",
-	 * "description": "Order #123",
-	 * "provider": "PAYSTACK",
-	 * "idempotencyKey": "idemp_20240115123456_abc123XYZ789"
-	 * }
-	 */
 	@PostMapping
 	public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
 			@Valid @RequestBody CreatePaymentRequest request,
-			@RequestHeader("X-API-Key") String apiKey,
-			Principal principal) {
+			@RequestHeader("X-API-Key") String apiKey) {
 
 		log.info("Received payment request: {}", request);
 
@@ -64,29 +45,11 @@ public class PaymentController {
 	public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentStatus(
 			@PathVariable UUID transactionId,
 			@RequestHeader("X-API-Key") String apiKey) {
+		log.info("Fetching status for transaction: {}", transactionId);
 
-		// Simplified: fetch from DB
-		// In real system: validate merchant owns this transaction
-		var transaction = paymentService.getTransaction(transactionId); // Add this method to PaymentService
-
-		return ResponseEntity.ok(ApiResponse.success(mapToResponse(transaction)));
+		PaymentResponse response = paymentService.getPaymentStatus(transactionId, apiKey);
+		return ResponseEntity.ok(ApiResponse.success(response));
 	}
-
-	// Simplified merchant ID derivation (Phase 1)
-	private UUID deriveMerchantIdFromApiKey(String apiKey) {
-		// In production: call auth-service to get merchant ID
-		// For now: use deterministic UUID based on API key prefix
-		String prefix = apiKey.substring(0, Math.min(apiKey.length(), 8));
-		return UUID.nameUUIDFromBytes(prefix.getBytes());
-	}
-
-//	@PostMapping
-//	public ResponseEntity<ApiResponse<PaymentResponse>>
-//	createPayment(@Valid @RequestBody PaymentRequest request) {
-//		PaymentResponse response = paymentService.processPayment(request);
-//		return ResponseEntity.ok(ApiResponse.success(response));
-//	}
-
 
 	/**
 	 * INTERNAL ENDPOINT: Update payment status (called by webhook-service)
@@ -108,4 +71,9 @@ public class PaymentController {
 				.build());
 	}
 
+	// Simplified merchant ID derivation (Phase 1)
+	private UUID deriveMerchantIdFromApiKey(String apiKey) {
+		String prefix = apiKey.substring(0, Math.min(apiKey.length(), 8));
+		return UUID.nameUUIDFromBytes(prefix.getBytes());
+	}
 }
