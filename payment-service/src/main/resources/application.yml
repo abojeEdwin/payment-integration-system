@@ -30,10 +30,10 @@ providers:
     api-url: https://api.paystack.co
   interswitch:
     secret-key: ${INTERSWITCH_SECRET_KEY:sk_test_xxx}
-    api-url: https://api.interswitch.co
+    api-url: https://newwebpay.interswitchng.com
   squadco:
     secret-key: ${SQUADCO_SECRET_KEY:sk_test_xxx}
-    api-url: https://api.squadco.co
+    api-url: https://sandbox-api-d.squadco.com
 
 logging:
   level:

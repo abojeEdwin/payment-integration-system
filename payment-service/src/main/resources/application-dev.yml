@@ -24,6 +24,24 @@ spring:
 server:
   port: 8082  # ✅ PAYMENT-SERVICE PORT
 
+providers:
+  paystack:
+    secret-key: ${PAYSTACK_SECRET_KEY:sk_test_xxx}
+    api-url: https://api.paystack.co
+  interswitch:
+    secret-key: ${INTERSWITCH_SECRET_KEY:sk_test_xxx}
+    api-url: https://newwebpay.qa.interswitchng.com
+  squadco:
+    secret-key: ${SQUADCO_SECRET_KEY:sk_test_xxx}
+    api-url: https://sandbox-api-d.squadco.com
+
+webhook:
+  service:
+    url: ${WEBHOOK_SERVICE_URL:http://localhost:8083/webhooks}
+auth:
+  service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
+
 logging:
   level:
     com.pay.payment: DEBUG

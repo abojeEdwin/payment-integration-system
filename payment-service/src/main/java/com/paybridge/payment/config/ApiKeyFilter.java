@@ -1,9 +1,11 @@
 package com.paybridge.payment.config;
 
+import com.paybridge.payment.client.AuthClient;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -12,11 +14,10 @@ import java.io.IOException;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class ApiKeyFilter extends OncePerRequestFilter {
 
-	// PHASE 1: Hardcoded test key for development ONLY
-	// ⚠️ SECURITY WARNING: Replace with auth-service RPC in Phase 2
-	private static final String PHASE_1_TEST_KEY = "test_api_key_123";
+	private final AuthClient authClient;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request,
@@ -32,16 +33,20 @@ public class ApiKeyFilter extends OncePerRequestFilter {
 			return;
 		}
 
-		// PHASE 1 VALIDATION: Accept ONLY hardcoded test key
-		if (!PHASE_1_TEST_KEY.equals(apiKey)) {
+		AuthClient.MerchantInfo merchant = authClient.validateApiKey(apiKey);
+
+		if (merchant == null || !merchant.isActive()) {
 			log.warn("Invalid API key attempt: {}", maskKey(apiKey));
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 			response.setContentType("application/json");
-			response.getWriter().write("{\"error\": \"Invalid API key (Phase 1 dev mode)\"}");
+			response.getWriter().write("{\"error\": \"Invalid API key\"}");
 			return;
 		}
+		// Store merchant info in request for controller access
+		request.setAttribute("MERCHANT_ID", merchant.getMerchantId());
+		request.setAttribute("PROVIDER", merchant.getProvider());
 
-		log.debug("✅ Valid Phase 1 test API key accepted");
+		log.debug("✅ Valid API key for merchant: {}", merchant.getMerchantId());
 		filterChain.doFilter(request, response);
 	}
 

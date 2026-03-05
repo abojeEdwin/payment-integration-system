@@ -5,6 +5,7 @@ import com.paybridge.payment.dto.CreatePaymentRequest;
 import com.paybridge.payment.dto.PaymentResponse;
 import com.paybridge.payment.dto.PaymentStatusUpdateRequest;
 import com.paybridge.payment.service.PaymentService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,17 +25,21 @@ public class PaymentController {
 	@PostMapping
 	public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
 			@Valid @RequestBody CreatePaymentRequest request,
-			@RequestHeader("X-API-Key") String apiKey) {
+			HttpServletRequest httpRequest) {
+
+		String merchantIdStr = (String) httpRequest.getAttribute("MERCHANT_ID");
+		UUID merchantId = UUID.fromString(merchantIdStr);
 
 		log.info("Received payment request: {}", request);
+		PaymentResponse response = paymentService.processPayment(
+				request,
+				merchantId,
+				httpRequest.getHeader("X-API-Key"));
 
-		// Generate merchant ID from API key (simplified - in real system call auth-service)
-		UUID merchantId = deriveMerchantIdFromApiKey(apiKey);
-
-		// Process payment with idempotency
-		PaymentResponse response = paymentService.processPayment(request, merchantId, apiKey);
-
-		return ResponseEntity.ok(ApiResponse.success(response, "Payment processed successfully"));
+		return ResponseEntity.ok(
+				ApiResponse.success(
+						response,
+						"Payment processed successfully"));
 	}
 
 	/**
@@ -69,11 +74,5 @@ public class PaymentController {
 		);
 		return ResponseEntity.ok(ApiResponse.<Void>builder()
 				.build());
-	}
-
-	// Simplified merchant ID derivation (Phase 1)
-	private UUID deriveMerchantIdFromApiKey(String apiKey) {
-		String prefix = apiKey.substring(0, Math.min(apiKey.length(), 8));
-		return UUID.nameUUIDFromBytes(prefix.getBytes());
 	}
 }
