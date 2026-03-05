@@ -4,6 +4,7 @@ import com.paybridge.auth.config.JwtTokenProvider;
 import com.paybridge.auth.dto.LoginRequest;
 import com.paybridge.auth.dto.LoginResponse;
 import com.paybridge.auth.dto.MerchantDto;
+import com.paybridge.auth.dto.MerchantRegistrationRequest;
 import com.paybridge.auth.entity.Merchant;
 import com.paybridge.auth.service.AuthService;
 import com.paybridge.common.dto.ApiResponse;
@@ -16,7 +17,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -34,12 +34,12 @@ public class AuthController {
 	 */
 	@PostMapping("/register")
 	public ResponseEntity<ApiResponse<MerchantDto>> registerMerchant(
-			@RequestParam String name,
-			@RequestParam String email,
-			@RequestParam String password,
-			@RequestParam ProviderType provider) {
-
-		MerchantDto merchant = authService.registerMerchant(name, email, password, provider);
+			@Valid @RequestBody MerchantRegistrationRequest request){
+		MerchantDto merchant = authService.registerMerchant(
+				request.getName(),
+				request.getEmail(),
+				request.getPassword(),
+				request.getProvider());
 		return ResponseEntity.ok(ApiResponse.success(merchant, "Merchant registered successfully"));
 	}
 

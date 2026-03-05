@@ -2,9 +2,13 @@ package com.paybridge.auth.controller;
 
 
 import com.paybridge.auth.dto.ApiKeyResponse;
+import com.paybridge.auth.dto.ApiKeyValidationResponse;
+import com.paybridge.auth.entity.Merchant;
 import com.paybridge.auth.service.ApiKeyService;
 import com.paybridge.common.dto.ApiResponse;
+import com.paybridge.common.exception.PaymentException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -76,5 +80,27 @@ public class ApiKeyController {
 		return ResponseEntity.ok(ApiResponse.<Void>builder()
 				.message("API key revoked successfully")
 				.build());
+	}
+
+	//i don't want to pass key via path,
+	// instead i want to pass it via header, but for testing purpose i am
+	// passing it via path
+	// also i would want to use my response dto for thie,
+	// ApiResponse<ApiKeyValidationResponse> instead of just ApiKeyValidationResponse
+
+	@GetMapping("/validate/{apiKey}")
+	public ResponseEntity<ApiKeyValidationResponse> validateApiKey(
+			@PathVariable String apiKey) {
+
+		try {
+			Merchant merchant = apiKeyService.validateApiKey(apiKey);
+			return ResponseEntity.ok(ApiKeyValidationResponse.builder()
+					.merchantId(merchant.getId().toString())
+					.isActive(merchant.isActive())
+					.provider(merchant.getPaymentProvider())
+					.build());
+		} catch (PaymentException ex) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
 	}
 }
