@@ -32,7 +32,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 	/**
 	 * Load merchant by email (helper method to get merchant ID)
 	 */
-	public Merchant getMerchantByEmail(String email) {
+	private Merchant getMerchantByEmail(String email) {
 		return merchantRepository.findActiveByEmail(email)
 				.orElseThrow(() -> new UsernameNotFoundException("Merchant not found: " + email));
 	}

@@ -24,7 +24,7 @@ server:
   port: 8081
 
 jwt:
-  secret: ${JWT_SECRET:your-super-secret-jwt-key-change-in-production}
+  secret: ${JWT_SECRET:07e7d120437153c0a2b2f9578d7cce771a0ac48315388e76d868c68e5be36c7f}
   expiration: 86400000 # 24 hours in milliseconds
 
 api:

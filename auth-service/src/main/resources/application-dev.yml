@@ -20,7 +20,7 @@ server:
   port: 8081  # ✅ AUTH-SERVICE PORT
 
 jwt:
-  secret: phase1-dev-secret-change-in-prod
+  secret: 07e7d120437153c0a2b2f9578d7cce771a0ac48315388e76d868c68e5be36c7f
   expiration: 86400000 # 24 hours
 
 logging:
