@@ -5,6 +5,7 @@ import com.paybridge.auth.dto.ApiKeyResponse;
 import com.paybridge.auth.dto.ApiKeyValidationResponse;
 import com.paybridge.auth.entity.Merchant;
 import com.paybridge.auth.service.ApiKeyService;
+import com.paybridge.auth.service.AuthService;
 import com.paybridge.common.dto.ApiResponse;
 import com.paybridge.common.exception.PaymentException;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ import java.util.UUID;
 public class ApiKeyController {
 
 	private final ApiKeyService apiKeyService;
-
+	private final AuthService authService;
 	/**
 	 * Generate new API key
 	 * POST /api-keys
@@ -33,7 +34,9 @@ public class ApiKeyController {
 			@RequestParam String description,
 			@RequestParam(defaultValue = "false") boolean live) {
 
-		UUID merchantId = UUID.fromString(authentication.getName());
+		String email = authentication.getName(); // This is the email
+		UUID merchantId = authService.getMerchantByEmail(email).getId();
+
 		ApiKeyResponse response = apiKeyService.generateApiKey(merchantId, description, live);
 		return ResponseEntity.ok(ApiResponse.success(response,
 				"API key generated successfully. Save this key now - it won't be shown again!"));
@@ -47,7 +50,8 @@ public class ApiKeyController {
 	public ResponseEntity<ApiResponse<List<ApiKeyResponse>>> getMerchantApiKeys(
 			Authentication authentication) {
 
-		UUID merchantId = UUID.fromString(authentication.getName());
+		String email = authentication.getName();
+		UUID merchantId = authService.getMerchantByEmail(email).getId();
 		List<ApiKeyResponse> keys = apiKeyService.getMerchantApiKeys(merchantId);
 		return ResponseEntity.ok(ApiResponse.success(keys));
 	}
@@ -75,14 +79,15 @@ public class ApiKeyController {
 			Authentication authentication,
 			@PathVariable String prefix) {
 
-		UUID merchantId = UUID.fromString(authentication.getName());
+		String email = authentication.getName();
+		UUID merchantId = authService.getMerchantByEmail(email).getId();
 		apiKeyService.revokeApiKeyByPrefix(merchantId, prefix);
 		return ResponseEntity.ok(ApiResponse.<Void>builder()
 				.message("API key revoked successfully")
 				.build());
 	}
 
-	//i don't want to pass key via path,
+	//TODO i don't want to pass key via path,
 	// instead i want to pass it via header, but for testing purpose i am
 	// passing it via path
 	// also i would want to use my response dto for thie,

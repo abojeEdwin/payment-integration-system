@@ -3,6 +3,7 @@ package com.paybridge.auth.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
@@ -40,14 +41,16 @@ public class ApiKey {
 	private boolean active = true;
 
 	@Column(name = "expires_at")
-	private Instant expiresAt;
+	@Builder.Default
+	private Instant expiresAt = null;
 
 	@CreatedDate
-	@Column(nullable = false, updatable = false)
+	@Column(nullable = false, updatable = false, name = "created_at")
 	private Instant createdAt;
 
-	@Column(nullable = false)
-	private Instant lastUsedAt;
+	@Column(nullable = false, name = "last_used_at")
+	@LastModifiedDate
+	private Instant lastUsedAt;;
 
 	/**
 	 * Check if API key is valid

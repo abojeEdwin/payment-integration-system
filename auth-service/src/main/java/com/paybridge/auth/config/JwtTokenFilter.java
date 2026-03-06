@@ -31,7 +31,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 			if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
 				String merchantId = jwtTokenProvider.getMerchantIdFromToken(jwt);
 
-				// Create authentication token
+				// Create authentication token with merchant ID as principal
 				UsernamePasswordAuthenticationToken authentication =
 						new UsernamePasswordAuthenticationToken(merchantId, null, null);
 				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

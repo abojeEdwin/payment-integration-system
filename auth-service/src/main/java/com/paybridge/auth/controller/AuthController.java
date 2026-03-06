@@ -5,7 +5,6 @@ import com.paybridge.auth.dto.LoginRequest;
 import com.paybridge.auth.dto.LoginResponse;
 import com.paybridge.auth.dto.MerchantDto;
 import com.paybridge.auth.dto.MerchantRegistrationRequest;
-import com.paybridge.auth.entity.Merchant;
 import com.paybridge.auth.service.AuthService;
 import com.paybridge.common.dto.ApiResponse;
 import com.paybridge.common.model.ProviderType;
@@ -49,15 +48,16 @@ public class AuthController {
 	 */
 	@PostMapping("/login")
 	public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
-		// Authenticate
+		// Authenticate (this validates email/password)
 		Authentication authentication = authenticationManager.authenticate(
 				new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
-		// Generate JWT
+		// Generate JWT (contains merchant ID from database lookup)
 		String jwt = jwtTokenProvider.generateToken(authentication);
 
-		// Get merchant details
-		Merchant merchant = authService.authenticate(request.getEmail(), request.getPassword());
+		// Get merchant details using email from authentication
+		String email = authentication.getName(); // This is the email
+		MerchantDto merchant = authService.getMerchantByEmail(email);
 
 		LoginResponse response = LoginResponse.builder()
 				.token(jwt)

@@ -9,6 +9,7 @@ import com.paybridge.common.exception.PaymentException;
 import com.paybridge.common.model.ErrorCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +54,7 @@ public class ApiKeyService {
         // Create API key entity
         ApiKey apiKey = ApiKey.builder()
                 .merchant(merchant)
-                .keyValue(fullKey)
+                .keyValue(hashKey(fullKey))
                 .keyPrefix(fullKey.substring(0, 8))
                 .description(description)
                 .active(true)
@@ -68,24 +69,45 @@ public class ApiKeyService {
                 .keyValue(fullKey)
                 .keyPrefix(apiKey.getKeyPrefix())
                 .description(description)
+                .active(true)
+                .expiresAt(apiKey.getExpiresAt())
                 .createdAt(apiKey.getCreatedAt())
+                .lastUsedAt(apiKey.getLastUsedAt())
                 .build();
+    }
+
+    /**
+     * Hash API key using BCrypt for secure storage
+     */
+    private String hashKey(String keyValue) {
+        return BCrypt.hashpw(keyValue, BCrypt.gensalt(12));
+    }
+
+    /**
+     * Verify API key against stored hash
+     */
+    private boolean verifyKey(String plainKey, String hashedKey) {
+        return BCrypt.checkpw(plainKey, hashedKey);
     }
 
     /**
      * Validate API key
      */
-    public Merchant validateApiKey(String keyValue) {
-        ApiKey apiKey = apiKeyRepository.findActiveByKeyValue(keyValue)
-                .orElseThrow(() -> new PaymentException(
-                    "Invalid or inactive API key", "AUTH_001", 
-                    ErrorCategory.CLIENT_ERROR));
+    public Merchant validateApiKey(String keyValue) throws PaymentException {
+        List<ApiKey> apiKeys = apiKeyRepository.findActiveByKeyPrefix(
+                keyValue.substring(0, 8)); // Query by prefix for efficiency
 
-        // Update last used timestamp
-        apiKey.markAsUsed();
-        apiKeyRepository.save(apiKey);
+        for (ApiKey apiKey : apiKeys) {
+            if (verifyKey(keyValue, apiKey.getKeyValue())) {
+                apiKey.markAsUsed();
+                apiKeyRepository.save(apiKey);
+                return apiKey.getMerchant();
+            }
+        }
 
-        return apiKey.getMerchant();
+        throw new PaymentException(
+                "Invalid or inactive API key", "AUTH_001",
+                ErrorCategory.CLIENT_ERROR);
     }
 
     /**

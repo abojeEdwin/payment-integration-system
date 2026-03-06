@@ -17,18 +17,23 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-	    private final MerchantRepository merchantRepository;
+	private final MerchantRepository merchantRepository;
 
 	@Override
 	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-		Merchant merchant = merchantRepository.findActiveByEmail(email)
-				.orElseThrow(() -> new UsernameNotFoundException("Merchant not found: " + email));
-
-		// Map merchant to Spring Security UserDetails
+		Merchant merchant = getMerchantByEmail(email);
 		return new User(
 				merchant.getEmail(),              // username = email
 				merchant.getPasswordHash(),       // BCrypt hashed password
 				List.of(new SimpleGrantedAuthority("ROLE_MERCHANT")) // authorities
 		);
+	}
+
+	/**
+	 * Load merchant by email (helper method to get merchant ID)
+	 */
+	public Merchant getMerchantByEmail(String email) {
+		return merchantRepository.findActiveByEmail(email)
+				.orElseThrow(() -> new UsernameNotFoundException("Merchant not found: " + email));
 	}
 }

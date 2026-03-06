@@ -37,4 +37,10 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
 	 * Count active keys for merchant
 	 */
 	long countByMerchantIdAndActive(UUID merchantId, boolean active);
+
+	/**
+	 * Find active API keys by key prefix (for efficient lookup)
+	 */
+	List<ApiKey> findActiveByKeyPrefix(String keyPrefix);
+
 }

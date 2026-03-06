@@ -90,6 +90,17 @@ public class AuthService {
     }
 
     /**
+     * Get merchant by email
+     */
+    public MerchantDto getMerchantByEmail(String email) {
+        Merchant merchant = merchantRepository.findActiveByEmail(email)
+                .orElseThrow(() -> new PaymentException(
+                        "Merchant not found", "AUTH_005",
+                        ErrorCategory.CLIENT_ERROR));
+        return merchantMapper.toDto(merchant);
+    }
+
+    /**
      * Update merchant details
      */
     @Transactional
