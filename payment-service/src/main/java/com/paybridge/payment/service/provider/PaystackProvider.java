@@ -62,7 +62,7 @@ public class PaystackProvider implements PaymentProvider {
 					.bodyToMono(PaystackChargeResponse.class)
 					.block();
 
-			if (response == null || !response.isSuccess()) {
+			if (response == null || !response.isStatus()) {
 				throw new RuntimeException("Paystack charge failed: " +
 						(response != null ? response.getMessage() : "No response"));
 			}
@@ -106,14 +106,14 @@ public class PaystackProvider implements PaymentProvider {
 
 	@Data
 	private static class PaystackChargeResponse {
-		private boolean            success;
+		private boolean            status;
 		private String             message;
 		private PaystackChargeData data;
 	}
 
 	@Data
 	private static class PaystackChargeData {
-		private Long   id;
+		private Long   id;//use access_code instead of id (similar to paystack)
 		private String reference;
 		private String authorizationUrl;
 	}

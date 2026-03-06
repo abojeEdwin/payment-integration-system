@@ -31,10 +31,11 @@ public class PaymentController {
 		UUID merchantId = UUID.fromString(merchantIdStr);
 
 		log.info("Received payment request: {}", request);
+		final String apiKey = httpRequest.getHeader("X-API-Key");
 		PaymentResponse response = paymentService.processPayment(
 				request,
 				merchantId,
-				httpRequest.getHeader("X-API-Key"));
+				apiKey);
 
 		return ResponseEntity.ok(
 				ApiResponse.success(
