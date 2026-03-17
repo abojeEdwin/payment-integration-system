@@ -3,11 +3,13 @@ package com.paybridge.auth.controller;
 
 import com.paybridge.auth.dto.ApiKeyResponse;
 import com.paybridge.auth.dto.ApiKeyValidationResponse;
+import com.paybridge.auth.dto.GenerateApiKeyRequest;
 import com.paybridge.auth.entity.Merchant;
 import com.paybridge.auth.service.ApiKeyService;
 import com.paybridge.auth.service.AuthService;
 import com.paybridge.common.dto.ApiResponse;
 import com.paybridge.common.exception.PaymentException;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,13 +33,12 @@ public class ApiKeyController {
 	@PostMapping
 	public ResponseEntity<ApiResponse<ApiKeyResponse>> generateApiKey(
 			Authentication authentication,
-			@RequestParam String description,
-			@RequestParam(defaultValue = "false") boolean live) {
+			@RequestBody GenerateApiKeyRequest request) {
 
 		String email = authentication.getName(); // This is the email
 		UUID merchantId = authService.getMerchantByEmail(email).getId();
 
-		ApiKeyResponse response = apiKeyService.generateApiKey(merchantId, description, live);
+		ApiKeyResponse response = apiKeyService.generateApiKey(merchantId, request);
 		return ResponseEntity.ok(ApiResponse.success(response,
 				"API key generated successfully. Save this key now - it won't be shown again!"));
 	}
@@ -93,9 +94,11 @@ public class ApiKeyController {
 	// also i would want to use my response dto for thie,
 	// ApiResponse<ApiKeyValidationResponse> instead of just ApiKeyValidationResponse
 
-	@GetMapping("/validate/{apiKey}")
+	@GetMapping("/validate")
 	public ResponseEntity<ApiKeyValidationResponse> validateApiKey(
-			@PathVariable String apiKey) {
+			@RequestHeader("X-API-Key")
+			@NotBlank(message = "API key not found in 'X-API-Key' header.")
+			String apiKey) {
 
 		try {
 			Merchant merchant = apiKeyService.validateApiKey(apiKey);

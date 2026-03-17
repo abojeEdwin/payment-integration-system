@@ -37,6 +37,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auths -> auths
 						// Public endpoints
 						.requestMatchers("/auth/login", "/auth/register").permitAll()
+						.requestMatchers("/api-keys/validate").permitAll()  // ✅ CRITICAL FIX
 						.requestMatchers("/actuator/**").permitAll()
 
 						// Merchant admin endpoints (require JWT)

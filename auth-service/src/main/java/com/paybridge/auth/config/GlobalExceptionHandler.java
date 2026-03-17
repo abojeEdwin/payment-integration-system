@@ -1,6 +1,7 @@
 package com.paybridge.auth.config;
 
 import com.paybridge.common.dto.ErrorDetail;
+import com.paybridge.common.exception.InvalidApiKeyException;
 import com.paybridge.common.exception.PaymentException;
 import com.paybridge.common.model.ErrorCategory;
 import lombok.extern.slf4j.Slf4j;
@@ -75,6 +76,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 		return ResponseEntity.badRequest()
 				.body(ErrorDetail.validationError(errors));
+	}
+
+	@ExceptionHandler(InvalidApiKeyException.class)
+	public ResponseEntity<ErrorDetail> handleInvalidApiKey(InvalidApiKeyException ex) {
+		log.warn("API key error: {}", ex.getMessage());
+
+		return ResponseEntity.status(401)
+				.body(ErrorDetail.of(
+						ex.getErrorCode(),
+						ex.getMessage(),
+						401,
+						"Provided API key is invalid or inactive"
+				));
 	}
 
 	/**

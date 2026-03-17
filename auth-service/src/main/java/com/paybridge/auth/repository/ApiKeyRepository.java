@@ -17,11 +17,18 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
 	 */
 	Optional<ApiKey> findByKeyValue(String keyValue);
 
+
 	/**
-	 * Find active API key by full key value
-	 */
-	@Query("SELECT k FROM ApiKey k WHERE k.keyValue = :keyValue AND k.active = true")
-	Optional<ApiKey> findActiveByKeyValue(String keyValue);
+	* Find active API key
+	*/
+	@Query("SELECT K FROM ApiKey K WHERE K.keyValue = :keyValue AND K.active = true")
+	Optional<ApiKey> findByKeyValueAndActiveTrue(String keyValue);
+
+//	/**
+//	 * Find active API key by full key value
+//	 */
+//	@Query("SELECT k FROM ApiKey k WHERE k.keyValue = :keyValue AND k.active = true")
+//	Optional<ApiKey> findActiveByKeyValue(String keyValue);
 
 	/**
 	 * Find API keys by merchant
