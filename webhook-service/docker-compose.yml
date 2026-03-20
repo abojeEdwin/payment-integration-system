@@ -1,0 +1,24 @@
+version: '3.8'
+services:
+  webhook-service:
+    build:
+      context: ..
+      dockerfile: webhook-service/src/main/docker/Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/webhook_db
+      - SPRING_DATASOURCE_USERNAME=webhook_user
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - PAYSTACK_WEBHOOK_SECRET=${PAYSTACK_WEBHOOK_SECRET}
+      - PAYMENT_SERVICE_URL=http://payment-service:8082
+    depends_on:
+      - postgres
+      - kafka
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

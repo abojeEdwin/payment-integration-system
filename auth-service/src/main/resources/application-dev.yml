@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: ${AUTH_DB_URL:jdbc:postgresql://localhost:5432/auth_db}
+    username: ${AUTH_DB_USERNAME:auth_user}
+    password: ${AUTH_DB_PASSWORD:dev_password_123}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8081  # ✅ AUTH-SERVICE PORT
+
+jwt:
+  secret: 07e7d120437153c0a2b2f9578d7cce771a0ac48315388e76d868c68e5be36c7f
+  expiration: 86400000 # 24 hours
+
+logging:
+  level:
+    com.pay.auth: DEBUG

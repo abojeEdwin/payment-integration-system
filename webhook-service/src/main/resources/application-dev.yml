@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    url: ${WEBHOOK_DB_URL:jdbc:postgresql://localhost:5432/webhook_db}
+    username: ${WEBHOOK_DB_USERNAME:webhook_user}
+    password: ${WEBHOOK_DB_PASSWORD:dev_password_123}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: webhook-processor-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+server:
+  port: 8083  # ✅ WEBHOOK-SERVICE PORT
+
+payment:
+  service:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8082}
+
+logging:
+  level:
+    com.paybridge.webhook: DEBUG
+    org.springframework.kafka: INFO
+
+providers:
+  ip:
+    whitelist:
+      - 52.31.139.75    # paystack
+      - 52.49.173.169   # paystack
+      - 52.214.14.220   # paystack
+      - 18.133.63.109   # squadco
+      - 0.0.0.0         # interswitch - replace with actual IPs:

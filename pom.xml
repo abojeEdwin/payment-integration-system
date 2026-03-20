@@ -35,7 +35,8 @@
 
     <scm>
         <connection>scm:git:https://github.com/ifeanyicyriacus/payment-integration-system.git</connection>
-        <developerConnection>scm:git:https://github.com/ifeanyicyriacus/payment-integration-system.git</developerConnection>
+        <developerConnection>scm:git:https://github.com/ifeanyicyriacus/payment-integration-system.git
+        </developerConnection>
         <url>https://github.com/ifeanyicyriacus/payment-integration-system</url>
         <tag>HEAD</tag>
     </scm>
@@ -44,10 +45,8 @@
     <modules>
         <module>common</module>
         <module>auth-service</module>
-        <module>gateway-service</module>
-        <module>payment-core</module>
-        <module>webhook-ingress</module>
-        <module>webhook-processor</module>
+        <module>payment-service</module>
+        <module>webhook-service</module>
     </modules>
 
     <!-- Properties (Centralized Versions) -->
@@ -67,6 +66,7 @@
         <mapstruct.version>1.6.2</mapstruct.version>
         <lombok.version>1.18.34</lombok.version>
         <jjwt.version>0.12.5</jjwt.version>
+        <jacoco.version>0.8.10</jacoco.version>
 
         <!-- Testing -->
         <testcontainers.version>1.20.1</testcontainers.version>
@@ -129,6 +129,7 @@
                     <configuration>
                         <source>${java.version}</source>
                         <target>${java.version}</target>
+                        <parameters>true</parameters> <!-- ✅ CRITICAL FIX -->
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.projectlombok</groupId>

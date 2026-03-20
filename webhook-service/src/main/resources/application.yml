@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: webhook-service
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/webhook_db
+    username: webhook_user
+    password: ${DB_PASSWORD:change_me}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+
+server:
+  port: 8083
+
+# Provider webhook secrets (set via environment variables in production)
+providers:
+  paystack:
+    webhook-secret: ${PAYSTACK_WEBHOOK_SECRET:}
+  interswitch:
+    webhook-secret: ${INTERSWITCH_WEBHOOK_SECRET:}
+  squadco:
+    webhook-secret: ${SQUADCO_WEBHOOK_SECRET:}
+
+payment:
+  service:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8082}
+
+logging:
+  level:
+    com.paybridge.webhook: DEBUG
+    org.springframework.kafka: INFO
