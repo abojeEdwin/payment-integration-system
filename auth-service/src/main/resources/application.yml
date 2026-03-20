@@ -30,6 +30,7 @@ jwt:
 api:
   key:
     header: X-API-Key
+    hmac-secret: ${API_KEY_HMAC_SECRET:change_me_in_production_use_a_strong_random_secret}
 
 logging:
   level:

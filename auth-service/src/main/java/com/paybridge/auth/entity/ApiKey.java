@@ -78,7 +78,7 @@ public class ApiKey {
 	 * Generate display-friendly masked key
 	 */
 	public String getMaskedKey() {
-		if (keyValue == null || keyValue.length() < 12) return "****";
-		return keyValue.substring(0, 8) + "..." + keyValue.substring(keyValue.length() - 4);
+		if (keyPrefix == null || keyPrefix.isEmpty()) return "****";
+		return keyPrefix + "...****";
 	}
 }

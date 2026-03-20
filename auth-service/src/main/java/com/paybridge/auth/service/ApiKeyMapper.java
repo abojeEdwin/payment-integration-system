@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface ApiKeyMapper {
 
-	@Mapping(source = "keyValue", target = "keyValue") // Map entity field to DTO field
+	@Mapping(target = "keyValue", ignore = true) // keyValue stores the hash — never expose it in list responses
 	@Mapping(source = "keyPrefix", target = "keyPrefix")
 	@Mapping(source = "description", target = "description")
 	@Mapping(source = "active", target = "active")
