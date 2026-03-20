@@ -36,7 +36,7 @@ public class WebhookService {
 	 * 3. Normalize event
 	 * 4. Publish to Kafka
 	 */
-	@Transactional
+	@Transactional(noRollbackFor = InvalidSignatureException.class)
 	public void processWebhook(WebhookEvent webhookEvent) {
 		try {
 			// Step 1: Get validator for provider
@@ -97,6 +97,9 @@ public class WebhookService {
 					.build();
 			processedWebhookRepository.save(processed);
 
+		} catch (InvalidSignatureException e) {
+			// Status already set to INVALID_SIGNATURE and saved above; re-throw without overwriting.
+			throw e;
 		} catch (Exception e) {
 			log.error("Error processing webhook {}", webhookEvent.getId(), e);
 			webhookEvent.markAsFailed(e.getMessage());
