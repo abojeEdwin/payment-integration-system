@@ -25,7 +25,7 @@ public class WebSecurityConfig {
 						session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auths -> auths
 						.requestMatchers("/actuator/**").permitAll()
-						.requestMatchers("/payments","/payments/**").authenticated()
+						.requestMatchers("/payments", "/payments/**").permitAll()
 						// PROTECTED ENDPOINTS (internal only)
 						.requestMatchers("/internal/**").authenticated() // For Phase 2 hardening
 						// Everything else denied
