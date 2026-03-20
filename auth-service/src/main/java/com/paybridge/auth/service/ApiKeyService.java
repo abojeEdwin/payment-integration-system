@@ -11,9 +11,18 @@ import com.paybridge.common.exception.PaymentException;
 import com.paybridge.common.model.ErrorCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import jakarta.annotation.PostConstruct;
+
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +34,16 @@ public class ApiKeyService {
 	private final ApiKeyRepository   apiKeyRepository;
 	private final MerchantRepository merchantRepository;
 	private final ApiKeyMapper       apiKeyMapper;
+
+	@Value("${api.key.hmac-secret}")
+	private String hmacSecret;
+
+	private SecretKeySpec hmacKeySpec;
+
+	@PostConstruct
+	void initHmacKey() {
+		this.hmacKeySpec = new SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+	}
 
 	private static final int    KEY_LENGTH      = 64;
 	private static final String KEY_PREFIX_LIVE = "pk_live_";
@@ -55,11 +74,10 @@ public class ApiKeyService {
 		// Generate secure random key
 		String fullKey = generateSecureKey(isLive);
 
-		// Create API key entity
+		// Create API key entity — store HMAC-SHA-256 hash, never the raw key
 		ApiKey apiKey = ApiKey.builder()
 				.merchant(merchant)
-//				.keyValue(hashKey(fullKey))
-				.keyValue(fullKey)
+				.keyValue(hashKey(fullKey))
 				.keyPrefix(fullKey.substring(0, 8))
 				.description(description)
 				.active(true)
@@ -81,19 +99,30 @@ public class ApiKeyService {
 				.build();
 	}
 
-//	/**
-//	 * Hash API key using BCrypt for secure storage
-//	 */
-//	private String hashKey(String keyValue) {
-//		return BCrypt.hashpw(keyValue, BCrypt.gensalt(12));
-//	}
-
+	/**
+	 * Hash API key using HMAC-SHA-256 with a server-side secret for secure, deterministic storage.
+	 * Unlike BCrypt, HMAC-SHA-256 is deterministic (same input + same secret → same hash), so
+	 * the hashed value can be stored in an indexed unique column and looked up directly — O(1)
+	 * retrieval, no sequential scan needed.
+	 * The server-side secret acts as a pepper: even if the DB is compromised, an attacker
+	 * cannot brute-force the keys without also knowing the secret.
+	 */
+	private String hashKey(String keyValue) {
+		try {
+			Mac mac = Mac.getInstance("HmacSHA256");
+			mac.init(hmacKeySpec);
+			byte[] hashBytes = mac.doFinal(keyValue.getBytes(StandardCharsets.UTF_8));
+			return HexFormat.of().formatHex(hashBytes);
+		} catch (NoSuchAlgorithmException | InvalidKeyException e) {
+			throw new IllegalStateException("HMAC-SHA-256 computation failed", e);
+		}
+	}
 
 	/**
 	 * Validate API key
 	 */
 	public Merchant validateApiKey(String keyValue) throws PaymentException {
-		ApiKey apiKey = apiKeyRepository.findByKeyValueAndActiveTrue(keyValue)
+		ApiKey apiKey = apiKeyRepository.findByKeyValueAndActiveTrue(hashKey(keyValue))
 				.orElseThrow(() -> new InvalidApiKeyException(
 						keyValue, "API key not found or inactive"));
 
