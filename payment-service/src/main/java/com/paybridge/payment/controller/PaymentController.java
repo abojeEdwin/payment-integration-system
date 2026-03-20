@@ -15,14 +15,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/payments")
 @Slf4j
 @RequiredArgsConstructor
 public class PaymentController {
 
 	private final PaymentService paymentService;
 
-	@PostMapping
+	@PostMapping("/payments")
 	public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
 			@Valid @RequestBody CreatePaymentRequest request,
 			HttpServletRequest httpRequest) {
@@ -53,7 +52,7 @@ public class PaymentController {
 	 * Get payment status
 	 * GET /payments/{transactionId}
 	 */
-	@GetMapping("/{transactionId}")
+	@GetMapping("/payments/{transactionId}")
 	public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentStatus(
 			@PathVariable UUID transactionId,
 			@RequestHeader("X-API-Key") String apiKey) {
