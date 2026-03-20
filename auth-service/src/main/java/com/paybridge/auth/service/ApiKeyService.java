@@ -9,15 +9,10 @@ import com.paybridge.auth.repository.MerchantRepository;
 import com.paybridge.common.exception.InvalidApiKeyException;
 import com.paybridge.common.exception.PaymentException;
 import com.paybridge.common.model.ErrorCategory;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import jakarta.annotation.PostConstruct;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -26,23 +21,26 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ApiKeyService {
 
 	private final ApiKeyRepository   apiKeyRepository;
 	private final MerchantRepository merchantRepository;
 	private final ApiKeyMapper       apiKeyMapper;
+	private final SecretKeySpec      hmacKeySpec;
 
-	@Value("${api.key.hmac-secret}")
-	private String hmacSecret;
-
-	private SecretKeySpec hmacKeySpec;
-
-	@PostConstruct
-	void initHmacKey() {
-		this.hmacKeySpec = new SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+	public ApiKeyService(ApiKeyRepository apiKeyRepository,
+						 MerchantRepository merchantRepository,
+						 ApiKeyMapper apiKeyMapper,
+						 @Value("${api.key.hmac-secret}") String hmacSecret) {
+		this.apiKeyRepository   = apiKeyRepository;
+		this.merchantRepository = merchantRepository;
+		this.apiKeyMapper       = apiKeyMapper;
+		this.hmacKeySpec        = new SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
 	}
 
 	private static final int    KEY_LENGTH      = 64;
