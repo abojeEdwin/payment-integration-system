@@ -4,8 +4,10 @@ import com.paybridge.webhook.entity.ProcessedWebhook;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 @Repository
-public interface ProcessedWebhookRepository extends JpaRepository<ProcessedWebhook, Long> {
+public interface ProcessedWebhookRepository extends JpaRepository<ProcessedWebhook, UUID> {
 
 	/**
 	 * Check if webhook was already processed (idempotency)
