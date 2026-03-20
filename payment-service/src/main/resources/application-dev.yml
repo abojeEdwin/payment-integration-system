@@ -1,43 +1,49 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:paymentdb;DB_CLOSE_DELAY=-1;MODE=POSTGRESQL
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    url: ${PAYMENT_DB_URL:jdbc:postgresql://localhost:5432/payment_db}
+    username: ${PAYMENT_DB_USERNAME:payment_user}
+    password: ${PAYMENT_DB_PASSWORD:dev_password_123}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    # Fail fast if Kafka unreachable (prevents silent failures)
+    properties:
+      max.block.ms: 5000
+
+#  jackson:
+#    property-naming-strategy: SNAKE_CASE
 
 server:
   port: 8082  # ✅ PAYMENT-SERVICE PORT
 
 providers:
   paystack:
-    secret-key: ${PAYSTACK_SECRET_KEY:sk_test_xxx}
+    secret-key: ${PAYSTACK_SECRET_KEY:sk_test_DEFAULT}
     api-url: https://api.paystack.co
   interswitch:
     secret-key: ${INTERSWITCH_SECRET_KEY:sk_test_xxx}
     api-url: https://newwebpay.qa.interswitchng.com
   squadco:
-    secret-key: ${SQUADCO_SECRET_KEY:sk_test_xxx}
+    secret-key: ${SQUADCO_SECRET_KEY:sandbox_sk_5c68e93f263b9556abe84f167b98678f5bd577288069}
     api-url: https://sandbox-api-d.squadco.com
 
 webhook:
   service:
     url: ${WEBHOOK_SERVICE_URL:http://localhost:8083/webhooks}
+    ip-whitelist: # either this, jwt  with service account or mTls mutual TLS should be used to secure the webhook endpoint
+      - 0.0.0.0 # todo Replace with actual IPs of webhook providers (it can automatically scale horizontally, so we need to allow a range)
+
 auth:
   service:
     url: ${AUTH_SERVICE_URL:http://localhost:8081}
