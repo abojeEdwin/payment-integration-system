@@ -28,7 +28,7 @@ payment:
 
 logging:
   level:
-    com.pay.webhook: DEBUG
+    com.paybridge.webhook: DEBUG
     org.springframework.kafka: INFO
 
 providers:
