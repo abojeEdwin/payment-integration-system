@@ -1,7 +1,9 @@
 version: '3.8'
 services:
   webhook-service:
-    build: ./webhook-service
+    build:
+      context: ..
+      dockerfile: webhook-service/src/main/docker/Dockerfile
     ports:
       - "8083:8083"
     environment:
