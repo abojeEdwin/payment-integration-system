@@ -1,0 +1,11 @@
+.git
+.idea
+**/target
+**/.mvn
+**/.DS_Store
+**/*.iml
+**/node_modules
+!auth-service/target/*.jar
+!payment-service/target/*.jar
+!webhook-service/target/*.jar
+
