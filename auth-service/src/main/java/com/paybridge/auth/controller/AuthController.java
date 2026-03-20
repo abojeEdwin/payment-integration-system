@@ -52,12 +52,12 @@ public class AuthController {
 		Authentication authentication = authenticationManager.authenticate(
 				new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
-		// Generate JWT (contains merchant ID from database lookup)
-		String jwt = jwtTokenProvider.generateToken(authentication);
+		// Generate JWT (subject is merchant UUID, email embedded as claim)
+		String jwt = jwtTokenProvider.generateToken(authentication, request.getEmail());
 
-		// Get merchant details using email from authentication
-		String email = authentication.getName(); // This is the email
-		MerchantDto merchant = authService.getMerchantByEmail(email);
+		// Get merchant details using UUID from authentication principal
+		UUID merchantId = UUID.fromString(authentication.getName());
+		MerchantDto merchant = authService.getMerchant(merchantId);
 
 		LoginResponse response = LoginResponse.builder()
 				.token(jwt)

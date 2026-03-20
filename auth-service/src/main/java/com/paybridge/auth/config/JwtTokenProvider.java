@@ -25,9 +25,11 @@ public class JwtTokenProvider {
 	}
 
 	/**
-	 * Generate JWT token for merchant admin
+	 * Generate JWT token for merchant admin.
+	 * The subject is the merchant UUID; email is embedded as a claim for
+	 * audit/display purposes without being used as the identity key.
 	 */
-	public String generateToken(Authentication authentication) {
+	public String generateToken(Authentication authentication, String email) {
 		String merchantId = authentication.getName();
 
 		Date now = new Date();
@@ -35,6 +37,7 @@ public class JwtTokenProvider {
 
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("merchantId", merchantId);
+		claims.put("email", email);
 
 		return Jwts.builder()
 				.claims(claims)

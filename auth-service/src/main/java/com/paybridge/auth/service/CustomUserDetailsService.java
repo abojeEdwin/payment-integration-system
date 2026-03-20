@@ -23,7 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 		Merchant merchant = getMerchantByEmail(email);
 		return new User(
-				merchant.getEmail(),              // username = email
+				merchant.getId().toString(),      // username = merchant UUID
 				merchant.getPasswordHash(),       // BCrypt hashed password
 				List.of(new SimpleGrantedAuthority("ROLE_MERCHANT")) // authorities
 		);
