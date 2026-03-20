@@ -1,24 +1,11 @@
-# Multi-stage build for webhook-service
-# Stage 1: Build with Maven
-FROM maven:3.8.6-openjdk-17-slim AS build
-
-WORKDIR /build
-
-# Copy POM and download dependencies (cache-friendly)
-COPY pom.xml .
-RUN mvn dependency:go-offline -B -q
-
-# Copy source code and build
-COPY src ./src
-RUN mvn clean package -DskipTests -B -q
-
-# Stage 2: Runtime with minimal JRE
-FROM openjdk:17-jre-slim
+FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy JAR from build stage
-COPY --from=build /build/target/webhook-service-1.0.0-SNAPSHOT.jar app.jar
+COPY webhook-service/target/webhook-service-0.0.1-SNAPSHOT.jar app.jar
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown appuser:appuser /app
