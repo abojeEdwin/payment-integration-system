@@ -52,8 +52,8 @@ public class AuthController {
 		Authentication authentication = authenticationManager.authenticate(
 				new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
-		// Generate JWT (subject is merchant UUID)
-		String jwt = jwtTokenProvider.generateToken(authentication);
+		// Generate JWT (subject is merchant UUID, email embedded as claim)
+		String jwt = jwtTokenProvider.generateToken(authentication, request.getEmail());
 
 		// Get merchant details using UUID from authentication principal
 		UUID merchantId = UUID.fromString(authentication.getName());
