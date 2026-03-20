@@ -25,9 +25,12 @@ public class WebSecurityConfig {
 						session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auths -> auths
 						.requestMatchers("/actuator/**").permitAll()
-						.anyRequest().authenticated())
-				.addFilterBefore(apiKeyFilter,
-						UsernamePasswordAuthenticationFilter.class);
+						.requestMatchers("/payments","/payments/**").authenticated()
+						// PROTECTED ENDPOINTS (internal only)
+						.requestMatchers("/internal/**").authenticated() // For Phase 2 hardening
+						// Everything else denied
+						.anyRequest().denyAll())
+				.addFilterBefore(apiKeyFilter, UsernamePasswordAuthenticationFilter.class);
 		return http.build();
 	}
 

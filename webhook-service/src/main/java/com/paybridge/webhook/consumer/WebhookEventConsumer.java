@@ -15,6 +15,8 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -36,7 +38,7 @@ public class WebhookEventConsumer {
 
 			// Step 1: Find original webhook event
 			WebhookEvent webhookEvent = webhookEventRepository.findById(
-							java.util.UUID.fromString(event.getOriginalWebhookId()))
+							UUID.fromString(event.getOriginalWebhookId()))
 					.orElseThrow(() -> new RuntimeException("Webhook event not found: " + event.getOriginalWebhookId()));
 
 			// Step 2: Update payment status in payment-service

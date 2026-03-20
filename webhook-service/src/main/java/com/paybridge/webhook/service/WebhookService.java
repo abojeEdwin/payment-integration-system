@@ -48,8 +48,11 @@ public class WebhookService {
 				throw new IllegalArgumentException(errorMsg);
 			}
 
+			final String rawPayload = webhookEvent.getRawPayload();
+			final String signatureHeader = webhookEvent.getSignatureHeader();
+
 			// Step 2: Validate signature
-			if (!validator.isValid(webhookEvent.getRawPayload(), webhookEvent.getSignatureHeader())) {
+			if (!validator.isValid(rawPayload, signatureHeader)) {
 				log.warn("Invalid signature for webhook {}", webhookEvent.getId());
 				webhookEvent.markAsInvalidSignature();
 				webhookEventRepository.save(webhookEvent);
@@ -57,7 +60,7 @@ public class WebhookService {
 			}
 
 			// Step 3: Check idempotency
-			String eventId = validator.extractEventId(webhookEvent.getRawPayload());
+			String eventId = validator.extractEventId(rawPayload);
 			if (processedWebhookRepository.existsByProviderAndEventId(webhookEvent.getProvider(), eventId)) {
 				log.info("Duplicate webhook detected (idempotency): {}", eventId);
 				webhookEvent.markAsProcessed(); // Mark as processed to avoid reprocessing
@@ -66,8 +69,8 @@ public class WebhookService {
 			}
 
 			// Step 4: Normalize event
-			WebhookEventType eventType = validator.normalizeEventType(webhookEvent.getRawPayload());
-			String transactionRef = validator.extractTransactionReference(webhookEvent.getRawPayload());
+			WebhookEventType eventType = validator.normalizeEventType(rawPayload);
+			String transactionRef = validator.extractTransactionReference(rawPayload);
 
 			NormalizedWebhookEvent normalizedEvent = NormalizedWebhookEvent.builder()
 					.eventId(UUID.randomUUID().toString())
@@ -75,7 +78,7 @@ public class WebhookService {
 					.provider(webhookEvent.getProvider())
 					.eventType(eventType)
 					.transactionReference(transactionRef)
-					.rawPayload(webhookEvent.getRawPayload())
+					.rawPayload(rawPayload)
 					.receivedAt(webhookEvent.getReceivedAt())
 					.build();
 

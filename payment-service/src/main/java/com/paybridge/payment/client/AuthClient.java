@@ -1,7 +1,6 @@
 package com.paybridge.payment.client;
 
-import com.paybridge.common.model.ProviderType;
-import lombok.Data;
+import com.paybridge.payment.dto.MerchantInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +26,8 @@ public class AuthClient {
 			WebClient webClient = webClientBuilder.baseUrl(authServiceUrl).build();
 
 			return webClient.get()
-					.uri("/api-keys/validate/" + apiKey)
+					.uri("/api-keys/validate")
+					.header("X-API-Key", apiKey)
 					.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 					.retrieve()
 					.onStatus(
@@ -53,10 +53,5 @@ public class AuthClient {
 				key.substring(0, 4) + "****" + key.substring(key.length() - 4) : "***";
 	}
 
-	@Data
-	public static class MerchantInfo {
-		private String       merchantId;
-		private boolean      isActive;
-		private ProviderType provider;
-	}
+
 }

@@ -28,6 +28,12 @@ public class PaymentController {
 			HttpServletRequest httpRequest) {
 
 		String merchantIdStr = (String) httpRequest.getAttribute("MERCHANT_ID");
+		log.debug("✅ Merchant ID from request attribute: {}", merchantIdStr);
+
+		if (merchantIdStr == null) {
+			throw new RuntimeException("MERCHANT_ID not set in request - ApiKeyFilter failed!");
+		}
+
 		UUID merchantId = UUID.fromString(merchantIdStr);
 
 		log.info("Received payment request: {}", request);

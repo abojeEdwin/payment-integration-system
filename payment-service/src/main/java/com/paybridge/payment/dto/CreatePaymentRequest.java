@@ -2,8 +2,6 @@ package com.paybridge.payment.dto;
 
 import com.paybridge.common.model.Currency;
 import com.paybridge.common.model.ProviderType;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 

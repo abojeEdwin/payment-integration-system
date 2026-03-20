@@ -41,7 +41,7 @@ public class WebhookController {
 	 */
 	@PostMapping("/interswitch")
 	public ResponseEntity<Void> handleInterswitchWebhook(
-			@RequestHeader(value = "Authorization", required = false) String signature,
+			@RequestHeader(value = "X-Interswitch-Signature", required = false) String signature,
 			@RequestBody String rawPayload) {
 
 		return handleWebhook("interswitch", signature, rawPayload);
@@ -53,10 +53,11 @@ public class WebhookController {
 	 */
 	@PostMapping("/squadco")
 	public ResponseEntity<Void> handleSquadcoWebhook(
+			@RequestHeader(value = "X-Squadco-Signature", required = false) String signature,
 			@RequestBody String rawPayload) {
 
 		// SquadCo may not send signature in header (depends on implementation)
-		return handleWebhook("squadco", null, rawPayload);
+		return handleWebhook("squadco", signature, rawPayload);
 	}
 
 	/**
@@ -80,6 +81,7 @@ public class WebhookController {
 			log.debug("Persisted webhook event: {}", webhookEvent.getId());
 
 			// ✅ STEP 2: Delegate to service for async processing
+			// (processing includes signature validation, normalization, idempotency check, Kafka publish)
 			webhookService.processWebhook(webhookEvent);
 
 			// ✅ STEP 3: Acknowledge receipt IMMEDIATELY (required by providers)

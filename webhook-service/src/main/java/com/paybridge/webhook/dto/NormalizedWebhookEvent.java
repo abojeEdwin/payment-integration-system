@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.Map;
 
 /**
  * Normalized webhook event for Kafka transport
@@ -69,5 +70,5 @@ public class NormalizedWebhookEvent {
 	/**
 	 * Optional metadata for future extensibility
 	 */
-	private java.util.Map<String, Object> metadata;
+	private Map<String, Object> metadata;
 }

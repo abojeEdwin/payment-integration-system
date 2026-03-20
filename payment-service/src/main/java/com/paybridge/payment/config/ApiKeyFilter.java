@@ -1,6 +1,7 @@
 package com.paybridge.payment.config;
 
 import com.paybridge.payment.client.AuthClient;
+import com.paybridge.payment.dto.MerchantInfo;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +21,12 @@ public class ApiKeyFilter extends OncePerRequestFilter {
 	private final AuthClient authClient;
 
 	@Override
+	protected boolean shouldNotFilter(HttpServletRequest request) {
+		String path = request.getServletPath();
+		return path.startsWith("/actuator") || path.startsWith("/error");
+	}
+
+	@Override
 	protected void doFilterInternal(HttpServletRequest request,
 									HttpServletResponse response,
 									FilterChain filterChain) throws ServletException, IOException {
@@ -33,9 +40,9 @@ public class ApiKeyFilter extends OncePerRequestFilter {
 			return;
 		}
 
-		AuthClient.MerchantInfo merchant = authClient.validateApiKey(apiKey);
+		MerchantInfo merchant = authClient.validateApiKey(apiKey);
 
-		if (merchant == null || !merchant.isActive()) {
+		if (merchant == null || !merchant.isActive() || merchant.getMerchantId() == null) {
 			log.warn("Invalid API key attempt: {}", maskKey(apiKey));
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 			response.setContentType("application/json");
