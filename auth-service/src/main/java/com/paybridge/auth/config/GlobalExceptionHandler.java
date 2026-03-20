@@ -92,6 +92,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	/**
+	 * Handle invalid authentication principal format (e.g. malformed UUID)
+	 */
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<ErrorDetail> handleIllegalArgument(IllegalArgumentException ex) {
+		log.warn("Invalid argument: {}", ex.getMessage());
+
+		return ResponseEntity.status(400)
+				.body(ErrorDetail.of(
+						"AUTH_006",
+						"Invalid request",
+						400,
+						ex.getMessage()
+				));
+	}
+
+	/**
 	 * Handle generic exceptions
 	 */
 	@ExceptionHandler(Exception.class)

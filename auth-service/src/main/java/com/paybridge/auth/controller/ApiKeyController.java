@@ -6,7 +6,6 @@ import com.paybridge.auth.dto.ApiKeyValidationResponse;
 import com.paybridge.auth.dto.GenerateApiKeyRequest;
 import com.paybridge.auth.entity.Merchant;
 import com.paybridge.auth.service.ApiKeyService;
-import com.paybridge.auth.service.AuthService;
 import com.paybridge.common.dto.ApiResponse;
 import com.paybridge.common.exception.PaymentException;
 import jakarta.validation.constraints.NotBlank;
@@ -25,7 +24,6 @@ import java.util.UUID;
 public class ApiKeyController {
 
 	private final ApiKeyService apiKeyService;
-	private final AuthService authService;
 	/**
 	 * Generate new API key
 	 * POST /api-keys
@@ -35,8 +33,7 @@ public class ApiKeyController {
 			Authentication authentication,
 			@RequestBody GenerateApiKeyRequest request) {
 
-		String email = authentication.getName(); // This is the email
-		UUID merchantId = authService.getMerchantByEmail(email).getId();
+		UUID merchantId = UUID.fromString(authentication.getName());
 
 		ApiKeyResponse response = apiKeyService.generateApiKey(merchantId, request);
 		return ResponseEntity.ok(ApiResponse.success(response,
@@ -51,8 +48,7 @@ public class ApiKeyController {
 	public ResponseEntity<ApiResponse<List<ApiKeyResponse>>> getMerchantApiKeys(
 			Authentication authentication) {
 
-		String email = authentication.getName();
-		UUID merchantId = authService.getMerchantByEmail(email).getId();
+		UUID merchantId = UUID.fromString(authentication.getName());
 		List<ApiKeyResponse> keys = apiKeyService.getMerchantApiKeys(merchantId);
 		return ResponseEntity.ok(ApiResponse.success(keys));
 	}
@@ -80,8 +76,7 @@ public class ApiKeyController {
 			Authentication authentication,
 			@PathVariable String prefix) {
 
-		String email = authentication.getName();
-		UUID merchantId = authService.getMerchantByEmail(email).getId();
+		UUID merchantId = UUID.fromString(authentication.getName());
 		apiKeyService.revokeApiKeyByPrefix(merchantId, prefix);
 		return ResponseEntity.ok(ApiResponse.<Void>builder()
 				.message("API key revoked successfully")
