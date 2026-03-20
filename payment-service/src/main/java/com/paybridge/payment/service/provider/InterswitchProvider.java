@@ -13,15 +13,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Component
 public class InterswitchProvider implements PaymentProvider {
 	private final WebClient webClient;
+	private final String secretKey;
 
-	@Value("${providers.interswitch.secret-key:}")
-	private String secretKey;
-
-	@Value("${providers.interswitch.api-url:https://api.interswitch.co}")
-	private String apiUrl;
-
-	public InterswitchProvider(WebClient.Builder webClientBuilder) {
+	public InterswitchProvider(
+			WebClient.Builder webClientBuilder,
+			@Value("${providers.interswitch.api-url:https://api.interswitch.co}") String apiUrl,
+			@Value("${providers.interswitch.secret-key:}") String secretKey) {
 		this.webClient = webClientBuilder.baseUrl(apiUrl).build();
+		this.secretKey = secretKey;
 	}
 
 	@Override
