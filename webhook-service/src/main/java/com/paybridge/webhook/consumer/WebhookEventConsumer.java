@@ -6,11 +6,11 @@ import com.paybridge.webhook.client.PaymentServiceClient;
 import com.paybridge.webhook.dto.NormalizedWebhookEvent;
 import com.paybridge.webhook.dto.PaymentStatusUpdateRequest;
 import com.paybridge.webhook.entity.WebhookEvent;
+import com.paybridge.webhook.exception.WebhookProcessingException;
 import com.paybridge.webhook.repository.WebhookEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,12 +26,16 @@ public class WebhookEventConsumer {
 	private final PaymentServiceClient   paymentServiceClient;
 
 	/**
-	 * Consume normalized webhook events from Kafka
-	 * Manual acknowledgment for reliability
+	 * Consume normalized webhook events from Kafka.
+	 *
+	 * Retry and DLQ handling are configured in {@link com.paybridge.webhook.config.KafkaConfig}:
+	 * - retryable failures are retried with backoff
+	 * - after max attempts (or for permanent failures) the message is published to the
+	 *   DLQ and the originating webhook event is marked FAILED
 	 */
 	@KafkaListener(topics = "webhook-events", groupId = "webhook-processor-group")
 	@Transactional
-	public void consumeWebhookEvent(@Payload NormalizedWebhookEvent event, Acknowledgment ack) {
+	public void consumeWebhookEvent(@Payload NormalizedWebhookEvent event) {
 		try {
 			log.info("Processing normalized webhook event: {} | Type: {}",
 					event.getEventId(), event.getEventType());
@@ -39,7 +43,8 @@ public class WebhookEventConsumer {
 			// Step 1: Find original webhook event
 			WebhookEvent webhookEvent = webhookEventRepository.findById(
 							UUID.fromString(event.getOriginalWebhookId()))
-					.orElseThrow(() -> new RuntimeException("Webhook event not found: " + event.getOriginalWebhookId()));
+					.orElseThrow(() -> new WebhookProcessingException(
+							"Webhook event not found: " + event.getOriginalWebhookId()));
 
 			// Step 2: Update payment status in payment-service
 			PaymentStatusUpdateRequest updateRequest = PaymentStatusUpdateRequest.builder()
@@ -55,15 +60,13 @@ public class WebhookEventConsumer {
 			webhookEvent.markAsProcessed();
 			webhookEventRepository.save(webhookEvent);
 
-			// Step 4: Acknowledge Kafka message (commit offset)
-			ack.acknowledge();
-			log.debug("Acknowledged Kafka message for event {}", event.getEventId());
+			// Offset is committed automatically by the container (AckMode.RECORD)
+			log.debug("Processed Kafka message for event {}", event.getEventId());
 
 		} catch (Exception e) {
 			log.error("Error processing webhook event {}", event.getEventId(), e);
-			// Do NOT acknowledge - message will be reprocessed after restart
-			// In production: Add retry logic + DLQ after max attempts
-			throw e; // Re-throw to trigger retry
+			// Re-throw so the container's error handler can apply the retry/DLQ policy
+			throw e;
 		}
 	}
 

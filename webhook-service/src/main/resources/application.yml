@@ -34,6 +34,15 @@ payment:
   service:
     url: ${PAYMENT_SERVICE_URL:http://localhost:8082}
 
+# Kafka retry + DLQ (dead letter queue) for failed webhook event processing
+webhook:
+  kafka:
+    dlq-topic: ${WEBHOOK_DLQ_TOPIC:webhook-events.DLT}
+    retry:
+      # Total attempts (initial + retries) before the message is sent to the DLQ
+      max-attempts: ${WEBHOOK_RETRY_MAX_ATTEMPTS:3}
+      backoff-interval-ms: ${WEBHOOK_RETRY_BACKOFF_MS:1000}
+
 logging:
   level:
     com.paybridge.webhook: DEBUG
