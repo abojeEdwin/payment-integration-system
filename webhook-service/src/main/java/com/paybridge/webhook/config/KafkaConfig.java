@@ -81,6 +81,10 @@ public class KafkaConfig {
 	                                             FailedWebhookRecorder failedWebhookRecorder) {
 		DeadLetterPublishingRecoverer deadLetterRecoverer = new DeadLetterPublishingRecoverer(
 				kafkaTemplate, (record, exception) -> new TopicPartition(dlqTopic, record.partition()));
+		// Throw on DLQ send failure so the source offset is not committed (setCommitRecovered(true))
+		// until the event has actually been published to the DLQ. Otherwise an async send that
+		// fails (unavailable topic, bad partition, serialization error) would silently drop the event.
+		deadLetterRecoverer.setFailIfSendResultIsError(true);
 
 		ConsumerRecordRecoverer recoverer = (record, exception) -> {
 			failedWebhookRecorder.markFailed(record.value(), exception);
