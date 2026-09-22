@@ -46,7 +46,7 @@ public class FailedWebhookRecorder {
 				webhookEvent -> {
 					webhookEvent.markAsFailed(reason);
 					webhookEventRepository.save(webhookEvent);
-					log.info("Marked webhook event {} as FAILED after retries exhausted", id);
+					log.info("Marked webhook event {} as FAILED after failed processing and DLQ hand-off", id);
 				},
 				() -> log.warn("Cannot mark webhook as failed: event {} not found", id));
 	}

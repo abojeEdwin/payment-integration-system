@@ -9,6 +9,7 @@ import com.paybridge.webhook.repository.WebhookEventRepository;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -84,6 +85,13 @@ class FailedWebhookDlqIntegrationTest {
 
 		assertEquals(event.getEventId(), dlqEvent.getEventId());
 
+		// The recoverer publishes to the DLQ before markFailed() commits (REQUIRES_NEW), so the DLQ
+		// record can arrive before the DB status; await the FAILED status before asserting details.
+		Awaitility.await().atMost(Duration.ofSeconds(15))
+				.until(() -> webhookEventRepository.findById(saved.getId())
+						.map(WebhookEvent::getStatus)
+						.filter("FAILED"::equals)
+						.isPresent());
 		WebhookEvent stored = webhookEventRepository.findById(saved.getId()).orElseThrow();
 		assertEquals("FAILED", stored.getStatus());
 		assertEquals("payment-service down", stored.getFailureReason());
