@@ -41,8 +41,15 @@ public class WebhookEventConsumer {
 					event.getEventId(), event.getEventType());
 
 			// Step 1: Find original webhook event
-			WebhookEvent webhookEvent = webhookEventRepository.findById(
-							UUID.fromString(event.getOriginalWebhookId()))
+			final UUID originalWebhookId;
+			try {
+				originalWebhookId = UUID.fromString(event.getOriginalWebhookId());
+			} catch (IllegalArgumentException | NullPointerException e) {
+				// A malformed ID can never become valid; fail fast to the DLQ instead of retrying
+				throw new WebhookProcessingException(
+						"Invalid original webhook id: " + event.getOriginalWebhookId(), e);
+			}
+			WebhookEvent webhookEvent = webhookEventRepository.findById(originalWebhookId)
 					.orElseThrow(() -> new WebhookProcessingException(
 							"Webhook event not found: " + event.getOriginalWebhookId()));
 

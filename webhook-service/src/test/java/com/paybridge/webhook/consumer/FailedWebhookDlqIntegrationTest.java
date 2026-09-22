@@ -6,6 +6,8 @@ import com.paybridge.webhook.dto.NormalizedWebhookEvent;
 import com.paybridge.webhook.dto.PaymentStatusUpdateRequest;
 import com.paybridge.webhook.entity.WebhookEvent;
 import com.paybridge.webhook.repository.WebhookEventRepository;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +22,13 @@ import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 
@@ -76,19 +80,58 @@ class FailedWebhookDlqIntegrationTest {
 		kafkaTemplate.send("webhook-events", event.getEventId(), event);
 		kafkaTemplate.flush();
 
-		NormalizedWebhookEvent dlqEvent;
-		try (org.apache.kafka.clients.consumer.Consumer<String, NormalizedWebhookEvent> consumer =
-				dlqConsumerFactory().createConsumer()) {
-			consumer.assign(java.util.Collections.singletonList(
-					new org.apache.kafka.common.TopicPartition("webhook-events.DLT", 0)));
-			dlqEvent = KafkaTestUtils.getSingleRecord(consumer, "webhook-events.DLT").value();
-		}
+		NormalizedWebhookEvent dlqEvent = waitForDlqEvent(event.getEventId());
 
 		assertEquals(event.getEventId(), dlqEvent.getEventId());
 
 		WebhookEvent stored = webhookEventRepository.findById(saved.getId()).orElseThrow();
 		assertEquals("FAILED", stored.getStatus());
 		assertEquals("payment-service down", stored.getFailureReason());
+	}
+
+	@Test
+	void malformedOriginalWebhookId_isPermanentFailure_andPublishedToDlq() {
+		NormalizedWebhookEvent event = NormalizedWebhookEvent.builder()
+				.eventId(UUID.randomUUID().toString())
+				.originalWebhookId("not-a-uuid")
+				.provider("paystack")
+				.eventType(WebhookEventType.PAYMENT_SUCCESS)
+				.transactionReference("txn_malformed")
+				.rawPayload("{}")
+				.receivedAt(Instant.now())
+				.build();
+
+		kafkaTemplate.send("webhook-events", event.getEventId(), event);
+		kafkaTemplate.flush();
+
+		NormalizedWebhookEvent dlqEvent = waitForDlqEvent(event.getEventId());
+
+		assertEquals(event.getEventId(), dlqEvent.getEventId());
+	}
+
+	/**
+	 * Polls the DLQ until an event matching the expected id arrives. Reads by id (instead of
+	 * {@link KafkaTestUtils#getSingleRecord}) because the embedded broker is shared across test
+	 * methods, so more than one record may already be present in the DLQ.
+	 */
+	private NormalizedWebhookEvent waitForDlqEvent(String expectedEventId) {
+		try (org.apache.kafka.clients.consumer.Consumer<String, NormalizedWebhookEvent> consumer =
+				dlqConsumerFactory().createConsumer()) {
+			consumer.assign(java.util.Collections.singletonList(
+					new org.apache.kafka.common.TopicPartition("webhook-events.DLT", 0)));
+			long deadline = System.currentTimeMillis() + Duration.ofSeconds(15).toMillis();
+			while (System.currentTimeMillis() < deadline) {
+				ConsumerRecords<String, NormalizedWebhookEvent> records =
+						KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(1));
+				for (ConsumerRecord<String, NormalizedWebhookEvent> record : records) {
+					if (expectedEventId.equals(record.value().getEventId())) {
+						return record.value();
+					}
+				}
+			}
+		}
+		fail("DLQ event " + expectedEventId + " not received");
+		return null;
 	}
 
 	private DefaultKafkaConsumerFactory<String, NormalizedWebhookEvent> dlqConsumerFactory() {

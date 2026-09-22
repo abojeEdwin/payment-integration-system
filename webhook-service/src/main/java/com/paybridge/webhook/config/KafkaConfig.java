@@ -6,6 +6,7 @@ import com.paybridge.webhook.service.FailedWebhookRecorder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -23,6 +24,7 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -80,17 +82,29 @@ public class KafkaConfig {
 	public DefaultErrorHandler kafkaErrorHandler(KafkaTemplate<String, NormalizedWebhookEvent> kafkaTemplate,
 	                                             FailedWebhookRecorder failedWebhookRecorder) {
 		DeadLetterPublishingRecoverer deadLetterRecoverer = new DeadLetterPublishingRecoverer(
-				kafkaTemplate, (record, exception) -> new TopicPartition(dlqTopic, record.partition()));
+				kafkaTemplate, (record, exception) -> {
+					// Preserve per-partition ordering while tolerating a DLQ with fewer partitions
+					// than the source topic: mod-mapping maps each source partition to one DLQ
+					// partition, keeping events ordered per partition. If the DLQ is unknown, fall
+					// back to partition 0 and let the send fail (below) rather than committing.
+					List<PartitionInfo> dlqPartitions = kafkaTemplate.partitionsFor(dlqTopic);
+					if (dlqPartitions == null || dlqPartitions.isEmpty()) {
+						return new TopicPartition(dlqTopic, 0);
+					}
+					return new TopicPartition(dlqTopic, Math.floorMod(record.partition(), dlqPartitions.size()));
+				});
 		// Throw on DLQ send failure so the source offset is not committed (setCommitRecovered(true))
 		// until the event has actually been published to the DLQ. Otherwise an async send that
 		// fails (unavailable topic, bad partition, serialization error) would silently drop the event.
 		deadLetterRecoverer.setFailIfSendResultIsError(true);
 
 		ConsumerRecordRecoverer recoverer = (record, exception) -> {
-			failedWebhookRecorder.markFailed(record.value(), exception);
 			log.warn("Webhook event {} exhausted retries; publishing to DLQ {}",
 					record.key(), dlqTopic, exception);
+			// Publish to the DLQ first: if it fails, the recoverer throws and the source offset
+			// is not committed, so the FAILED status below reflects a confirmed DLQ copy.
 			deadLetterRecoverer.accept(record, exception);
+			failedWebhookRecorder.markFailed(record.value(), exception);
 		};
 
 		DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer,
