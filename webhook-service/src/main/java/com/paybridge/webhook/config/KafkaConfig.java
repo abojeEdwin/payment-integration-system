@@ -8,6 +8,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.FixedBackOff;
@@ -59,15 +61,38 @@ public class KafkaConfig {
 		return new KafkaTemplate<>(producerFactory());
 	}
 
+	// Producer for DLQ copies of records whose value failed to deserialize: the original
+	// byte[] payload is republished as-is, so it does not survive a JsonSerializer round-trip.
+	@Bean
+	public ProducerFactory<String, byte[]> dlqByteArrayProducerFactory() {
+		Map<String, Object> props = new HashMap<>();
+		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
+		props.put(ProducerConfig.ACKS_CONFIG, "all"); // Strong durability
+		return new DefaultKafkaProducerFactory<>(props);
+	}
+
+	@Bean
+	public KafkaTemplate<String, byte[]> dlqByteArrayKafkaTemplate() {
+		return new KafkaTemplate<>(dlqByteArrayProducerFactory());
+	}
+
 	// Consumer config for processing events
 	@Bean
 	public ConsumerFactory<String, NormalizedWebhookEvent> consumerFactory() {
 		Map<String, Object> props = new HashMap<>();
 		props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
 		props.put(ConsumerConfig.GROUP_ID_CONFIG, "webhook-processor-group");
-		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-		props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+		// ErrorHandlingDeserializer wraps the delegating deserializers so a malformed record
+		// is routed (via its exception headers) to the container's error handler and here to the
+		// DLQ, instead of throwing SerializationException before the listener can handle it.
+		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+		props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+		props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
+		props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
 		props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+		props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, NormalizedWebhookEvent.class);
 		props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 		props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 		return new DefaultKafkaConsumerFactory<>(props);
@@ -80,9 +105,16 @@ public class KafkaConfig {
 	 */
 	@Bean
 	public DefaultErrorHandler kafkaErrorHandler(KafkaTemplate<String, NormalizedWebhookEvent> kafkaTemplate,
+	                                             KafkaTemplate<String, byte[]> dlqByteArrayKafkaTemplate,
 	                                             FailedWebhookRecorder failedWebhookRecorder) {
+		Map<Class<?>, KafkaOperations<?, ?>> dlqTemplates = new HashMap<>();
+		dlqTemplates.put(NormalizedWebhookEvent.class, kafkaTemplate);
+		// Records that failed deserialization carry the original byte[] payload; publish them
+		// with a ByteArraySerializer so the DLQ copy preserves the raw bytes.
+		dlqTemplates.put(byte[].class, dlqByteArrayKafkaTemplate);
+
 		DeadLetterPublishingRecoverer deadLetterRecoverer = new DeadLetterPublishingRecoverer(
-				kafkaTemplate, (record, exception) -> {
+				dlqTemplates, (record, exception) -> {
 					// Preserve per-partition ordering while tolerating a DLQ with fewer partitions
 					// than the source topic: mod-mapping maps each source partition to one DLQ
 					// partition, keeping events ordered per partition. If the DLQ is unknown, fall
@@ -99,8 +131,8 @@ public class KafkaConfig {
 		deadLetterRecoverer.setFailIfSendResultIsError(true);
 
 		ConsumerRecordRecoverer recoverer = (record, exception) -> {
-			log.warn("Webhook event {} exhausted retries; publishing to DLQ {}",
-					record.key(), dlqTopic, exception);
+			log.warn("Webhook record failed processing and is being published to DLQ {}",
+					dlqTopic, exception);
 			// Publish to the DLQ first: if it fails, the recoverer throws and the source offset
 			// is not committed, so the FAILED status below reflects a confirmed DLQ copy.
 			deadLetterRecoverer.accept(record, exception);

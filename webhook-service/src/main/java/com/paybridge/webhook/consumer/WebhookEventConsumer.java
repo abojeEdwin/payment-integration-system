@@ -10,6 +10,7 @@ import com.paybridge.webhook.exception.WebhookProcessingException;
 import com.paybridge.webhook.repository.WebhookEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
@@ -35,8 +36,18 @@ public class WebhookEventConsumer {
 	 */
 	@KafkaListener(topics = "webhook-events", groupId = "webhook-processor-group")
 	@Transactional
-	public void consumeWebhookEvent(@Payload NormalizedWebhookEvent event) {
+	public void consumeWebhookEvent(@Payload NormalizedWebhookEvent event,
+	                                ConsumerRecord<?, ?> record) {
 		try {
+			// The container usually routes records with deserialization-failure headers straight to
+			// the error handler, but guard against a null event so such messages are never silently
+			// dropped: throw a permanent failure to force them into the DLQ recovery path.
+			if (event == null) {
+				throw new WebhookProcessingException(
+						"Failed to deserialize webhook event on partition " + record.partition()
+								+ " at offset " + record.offset());
+			}
+
 			log.info("Processing normalized webhook event: {} | Type: {}",
 					event.getEventId(), event.getEventType());
 
