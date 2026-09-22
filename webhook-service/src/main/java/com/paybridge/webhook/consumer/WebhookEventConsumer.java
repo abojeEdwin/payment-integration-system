@@ -82,7 +82,10 @@ public class WebhookEventConsumer {
 			log.debug("Processed Kafka message for event {}", event.getEventId());
 
 		} catch (Exception e) {
-			log.error("Error processing webhook event {}", event.getEventId(), e);
+			// The event may be null (deserialization failure reached the guard above); log safely
+			// so the original exception (e.g. the WebhookProcessingException) is not masked by an NPE.
+			String eventId = event == null ? "null (unreadable payload)" : event.getEventId();
+			log.error("Error processing webhook event {}", eventId, e);
 			// Re-throw so the container's error handler can apply the retry/DLQ policy
 			throw e;
 		}

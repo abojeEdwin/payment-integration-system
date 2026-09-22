@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -124,6 +125,15 @@ class FailedWebhookDlqIntegrationTest {
 	}
 
 	@Test
+	void nullPayload_isPublishedToDlq() {
+		kafkaTemplate.send("webhook-events", "null-key", null);
+		kafkaTemplate.flush();
+
+		assertTrue(waitForDlqRecordWithKey("null-key"),
+				"DLQ should contain the null-payload record");
+	}
+
+	@Test
 	void malformedOriginalWebhookId_isPermanentFailure_andPublishedToDlq() {
 		NormalizedWebhookEvent event = NormalizedWebhookEvent.builder()
 				.eventId(UUID.randomUUID().toString())
@@ -201,5 +211,30 @@ class FailedWebhookDlqIntegrationTest {
 		}
 		fail("DLQ payload not received for malformed record");
 		return null;
+	}
+
+	/**
+	 * Scans the DLQ for a record with the given key, regardless of its (possibly null) value.
+	 */
+	private boolean waitForDlqRecordWithKey(String expectedKey) {
+		Map<String, Object> props = KafkaTestUtils.consumerProps(
+				"dlq-key-test-group", "false", embeddedKafkaBroker);
+		try (org.apache.kafka.clients.consumer.Consumer<String, byte[]> consumer =
+				new DefaultKafkaConsumerFactory<>(props,
+						new StringDeserializer(), new ByteArrayDeserializer()).createConsumer()) {
+			consumer.assign(java.util.Collections.singletonList(
+					new org.apache.kafka.common.TopicPartition("webhook-events.DLT", 0)));
+			long deadline = System.currentTimeMillis() + Duration.ofSeconds(15).toMillis();
+			while (System.currentTimeMillis() < deadline) {
+				ConsumerRecords<String, byte[]> records =
+						KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(1));
+				for (ConsumerRecord<String, byte[]> record : records) {
+					if (expectedKey.equals(record.key())) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 }

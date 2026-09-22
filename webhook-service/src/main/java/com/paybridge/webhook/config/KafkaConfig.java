@@ -112,6 +112,8 @@ public class KafkaConfig {
 		// Records that failed deserialization carry the original byte[] payload; publish them
 		// with a ByteArraySerializer so the DLQ copy preserves the raw bytes.
 		dlqTemplates.put(byte[].class, dlqByteArrayKafkaTemplate);
+		// Null-valued records (e.g. a JSON null payload) must also resolve to a producer template.
+		dlqTemplates.put(Void.class, kafkaTemplate);
 
 		DeadLetterPublishingRecoverer deadLetterRecoverer = new DeadLetterPublishingRecoverer(
 				dlqTemplates, (record, exception) -> {
